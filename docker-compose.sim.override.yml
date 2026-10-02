@@ -1,0 +1,32 @@
+# Overlay for pipeline simulation — isolated project/volumes, localhost-only port 30998.
+name: meetcon-sim
+
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_sim_data:/var/lib/postgresql/data
+
+  redis:
+    volumes:
+      - redis_sim_data:/data
+
+  migrate:
+    env_file:
+      - .env.simulation
+
+  api:
+    env_file:
+      - .env.simulation
+    volumes:
+      - media_sim_data:/data/media
+
+  gateway:
+    ports:
+      - "127.0.0.1:${GATEWAY_PUBLIC_PORT:-30998}:30098"
+
+volumes:
+  postgres_sim_data:
+  redis_sim_data:
+  media_sim_data:

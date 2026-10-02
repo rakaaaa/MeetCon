@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MeetCon</string>
+    <string name="loading_meetcon">Loading MeetCon</string>
+    <string name="loading_description">Connecting to your meetups…</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="back_online">Back online</string>
+    <string name="load_failed_title">MeetCon could not be loaded</string>
+    <string name="load_failed_message">Check your connection and try again. Your current session and page data are kept on this device.</string>
+    <string name="retry">Retry</string>
+    <string name="external_link_failed">No browser is available to open this link.</string>
+</resources>

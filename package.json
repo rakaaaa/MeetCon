@@ -1,0 +1,37 @@
+{
+  "name": "meetcon",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MeetCon workspace",
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node run.mjs",
+    "dev": "corepack pnpm --parallel --filter @meetcon/api --filter @meetcon/web run dev",
+    "build": "corepack pnpm -r --if-present run build",
+    "typecheck": "corepack pnpm -r --if-present run typecheck",
+    "lint": "corepack pnpm -r --if-present run lint",
+    "test": "corepack pnpm -r --if-present run test",
+    "migrate": "corepack pnpm --filter @meetcon/api run migrate",
+    "test:integration": "node scripts/run-stack-check.mjs integration",
+    "test:e2e": "node scripts/run-stack-check.mjs e2e",
+    "simulate": "sh deploy/meetcon.sh simulate",
+    "run": "sh deploy/meetcon.sh run",
+    "smoke": "sh deploy/meetcon.sh smoke",
+    "deploy": "sh deploy/meetcon.sh deploy",
+    "deploy:up": "sh deploy/meetcon.sh up",
+    "deploy:doctor": "sh deploy/meetcon.sh doctor",
+    "deploy:doctor:full": "sh deploy/meetcon.sh doctor --full",
+    "deploy:backup": "sh deploy/meetcon.sh backup",
+    "deploy:prod": "sh deploy/meetcon.sh up",
+    "deploy:prod:ps": "docker compose --env-file .env.production -f docker-compose.prod.yml ps",
+    "deploy:prod:logs": "docker compose --env-file .env.production -f docker-compose.prod.yml logs -f api gateway"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "@types/node": "20.19.17",
+    "typescript": "5.9.2"
+  }
+}

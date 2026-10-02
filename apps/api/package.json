@@ -1,0 +1,37 @@
+{
+  "name": "@meetcon/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "migrate": "tsx src/db/migrate.ts",
+    "test:integration": "node scripts/api-integration.mjs"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.0.2",
+    "@fastify/cors": "11.1.0",
+    "@fastify/helmet": "13.0.2",
+    "@fastify/multipart": "9.2.1",
+    "@fastify/rate-limit": "10.3.0",
+    "@meetcon/shared": "workspace:*",
+    "argon2": "0.44.0",
+    "dotenv": "17.2.2",
+    "fastify": "5.6.1",
+    "ioredis": "5.7.0",
+    "nodemailer": "7.0.6",
+    "pg": "8.16.3",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.17",
+    "@types/nodemailer": "6.4.19",
+    "@types/pg": "8.15.5",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2"
+  }
+}

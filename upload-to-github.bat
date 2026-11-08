@@ -5,7 +5,7 @@ rem Upload this folder to the GitHub repo in "origin".
 rem If origin is missing, ask once and save the URL only.
 rem The push asks for a personal access token and discards it.
 rem Saved Git Credential Manager logins are left unchanged.
-rem This file does not force-push.
+rem The push uses --force and replaces the remote branch history.
 
 cd /d "%~dp0"
 
@@ -82,7 +82,8 @@ if "%BRANCH_LINE%"=="## master" (
 )
 
 echo.
-echo This push asks for a personal access token and does not change saved GitHub credentials.
+echo This push replaces the remote branch history.
+echo It asks for a personal access token and does not change saved GitHub credentials.
 echo An account password will not work. Create a token at:
 echo   https://github.com/settings/tokens
 echo.
@@ -94,7 +95,6 @@ if "%PUSH_ERROR%"=="2" (
 if not "%PUSH_ERROR%"=="0" (
   echo.
   echo Push failed. Saved GitHub credentials were left unchanged.
-  echo This script does not force-push. If the remote already has different history, pull or merge first.
   goto :failed
 )
 
@@ -249,7 +249,7 @@ try {
   $env:GIT_ASKPASS = $ask
   $env:GIT_TERMINAL_PROMPT = '0'
   $env:GCM_INTERACTIVE = 'Never'
-  & git -c credential.helper= push -u origin HEAD
+  & git -c credential.helper= push --force -u origin HEAD
   if ($null -eq $LASTEXITCODE) { $pushCode = 1 } else { $pushCode = $LASTEXITCODE }
 }
 finally {

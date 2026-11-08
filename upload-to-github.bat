@@ -2,9 +2,10 @@
 setlocal EnableExtensions
 
 rem Upload this folder to the GitHub repo in "origin".
-rem If origin is missing, ask once and save it. Copy this file to other
-rem projects as-is; it does not contain a repository URL.
-rem Requires Git for Windows and Git Credential Manager. Never force-pushes.
+rem If origin is missing, ask once and save the URL only.
+rem The push asks for a personal access token and discards it.
+rem Saved Git Credential Manager logins are left unchanged.
+rem This file does not force-push.
 
 cd /d "%~dp0"
 
@@ -12,7 +13,6 @@ where git >nul 2>&1
 if errorlevel 1 (
   echo Git for Windows is not installed or not on PATH.
   echo Install it from https://git-scm.com/download/win
-  echo Then sign in with Git Credential Manager.
   goto :failed
 )
 
@@ -82,11 +82,18 @@ if "%BRANCH_LINE%"=="## master" (
 )
 
 echo.
-echo Pushing to origin...
-git push -u origin HEAD
-if errorlevel 1 (
+echo This push asks for a personal access token and does not change saved GitHub credentials.
+echo An account password will not work. Create a token at:
+echo   https://github.com/settings/tokens
+echo.
+call :push_incognito
+if "%PUSH_ERROR%"=="2" (
+  echo A GitHub username and personal access token are required.
+  goto :failed
+)
+if not "%PUSH_ERROR%"=="0" (
   echo.
-  echo Push failed. Sign in with Git Credential Manager if GitHub asked for credentials.
+  echo Push failed. Saved GitHub credentials were left unchanged.
   echo This script does not force-push. If the remote already has different history, pull or merge first.
   goto :failed
 )
@@ -94,6 +101,13 @@ if errorlevel 1 (
 echo.
 echo Upload completed.
 goto :done
+
+:push_incognito
+set "MEETCON_UPLOAD_BAT=%~f0"
+set "REPO_URL=%REPO_URL%"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$raw=Get-Content -LiteralPath $env:MEETCON_UPLOAD_BAT -Raw; $m='### INCOGNITO-PUSH ###'; $i=$raw.LastIndexOf($m); if($i -lt 0){exit 3}; $s=$raw.Substring($i+$m.Length).TrimStart(); & ([scriptblock]::Create($s))"
+set "PUSH_ERROR=%ERRORLEVEL%"
+exit /b 0
 
 :empty_message
 echo A commit message is required.
@@ -113,7 +127,7 @@ for /f "delims=" %%U in ('git remote get-url origin 2^>nul') do set "REPO_URL=%%
 if defined REPO_URL exit /b 0
 
 echo This folder has no GitHub remote yet.
-echo Example: https://github.com/rakesh-aggarwal/my-ai-app.git
+echo Example: https://github.com/rakaaaa/MeetCon.git
 set /p REPO_URL=GitHub repository URL: 
 if not defined REPO_URL (
   echo A repository URL is required.
@@ -133,13 +147,11 @@ exit /b 0
 echo %REPO_URL%| findstr /i /c:"https://" | findstr /c:"@" >nul
 if not errorlevel 1 (
   echo Do not put a token or password in the repository URL.
-  echo Sign in with Git Credential Manager instead.
   exit /b 1
 )
 echo %REPO_URL%| findstr /i /c:"ghp_" /c:"github_pat_" >nul
 if not errorlevel 1 (
   echo Do not put a token or password in the repository URL.
-  echo Sign in with Git Credential Manager instead.
   exit /b 1
 )
 echo %REPO_URL%| findstr /i /r /c:"^https://github.com/[^/ ][^/ ]*/[^/ ][^/ ]*" /c:"^git@github.com:[^/ ][^/ ]*/[^/ ][^/ ]*" >nul
@@ -204,3 +216,47 @@ echo.
 pause
 endlocal
 exit /b 0
+
+### INCOGNITO-PUSH ###
+$ErrorActionPreference = 'Stop'
+$ask = $null
+$bstr = [IntPtr]::Zero
+$pushCode = 1
+try {
+  $defaultUser = ''
+  if ($env:REPO_URL -match 'github\.com[:/]([^/]+)/') { $defaultUser = $Matches[1] }
+  $prompt = 'GitHub username'
+  if (-not [string]::IsNullOrWhiteSpace($defaultUser)) { $prompt = "GitHub username [$defaultUser]" }
+  $entered = Read-Host $prompt
+  if ([string]::IsNullOrWhiteSpace($entered)) { $user = $defaultUser } else { $user = $entered.Trim() }
+  if ([string]::IsNullOrWhiteSpace($user)) { exit 2 }
+  $secure = Read-Host 'Personal access token' -AsSecureString
+  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  $token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+  if ([string]::IsNullOrWhiteSpace($token)) { exit 2 }
+  if ($user -match '[&|<>^%\s]') { Write-Host 'Username has characters this uploader cannot pass safely.'; exit 2 }
+  if ($token -match '[&|<>^%\s]') { Write-Host 'Token has characters this uploader cannot pass safely.'; exit 2 }
+  $ask = Join-Path $env:TEMP ("git-askpass-{0}.cmd" -f [guid]::NewGuid().ToString('n'))
+  @(
+    '@echo off',
+    'echo %~1 | findstr /I "Username" >nul',
+    'if not errorlevel 1 (',
+    "  echo $user",
+    '  exit /b 0',
+    ')',
+    "echo $token"
+  ) | Set-Content -LiteralPath $ask -Encoding ASCII
+  $env:GIT_ASKPASS = $ask
+  $env:GIT_TERMINAL_PROMPT = '0'
+  $env:GCM_INTERACTIVE = 'Never'
+  & git -c credential.helper= push -u origin HEAD
+  if ($null -eq $LASTEXITCODE) { $pushCode = 1 } else { $pushCode = $LASTEXITCODE }
+}
+finally {
+  if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+  Remove-Item Env:GIT_ASKPASS -ErrorAction SilentlyContinue
+  Remove-Item Env:GIT_TERMINAL_PROMPT -ErrorAction SilentlyContinue
+  Remove-Item Env:GCM_INTERACTIVE -ErrorAction SilentlyContinue
+  if ($ask -and (Test-Path -LiteralPath $ask)) { Remove-Item -LiteralPath $ask -Force }
+}
+exit $pushCode

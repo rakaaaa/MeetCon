@@ -95,9 +95,6 @@ if "%PUSH_ERROR%"=="2" (
 if not "%PUSH_ERROR%"=="0" (
   echo.
   echo Push failed. Saved GitHub credentials were left unchanged.
-  echo GitHub recognized the account and refused the write.
-  echo Open the token, choose only rakaaaa/MeetCon, and set Contents to Read and write.
-  echo A classic token needs the repo scope. Metadata read alone cannot push.
   goto :failed
 )
 
@@ -222,8 +219,8 @@ exit /b 0
 
 ### INCOGNITO-PUSH ###
 $ErrorActionPreference = 'Stop'
-$ask = $null
 $bstr = [IntPtr]::Zero
+$body = $null
 $pushCode = 1
 try {
   $defaultUser = ''
@@ -237,24 +234,47 @@ try {
   $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
   $token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   if ([string]::IsNullOrWhiteSpace($token)) { exit 2 }
-  if ($user -match '[&|<>^%\s]') { Write-Host 'Username has characters this uploader cannot pass safely.'; exit 2 }
-  if ($token -match '[&|<>^%\s]') { Write-Host 'Token has characters this uploader cannot pass safely.'; exit 2 }
-  $ask = Join-Path $env:TEMP ("git-cred-{0}.cmd" -f [guid]::NewGuid().ToString('n'))
-  @(
-    '@echo off',
-    "echo username=$user",
-    "echo password=$token"
-  ) | Set-Content -LiteralPath $ask -Encoding ASCII
-  $helper = 'cmd.exe /C "' + ($ask.Replace('\', '/')) + '"'
+  if ($user -match '[&|<>^%\s''"`$\\]') { Write-Host 'Username has characters this uploader cannot pass safely.'; exit 2 }
+  if ($token -match '[&|<>^%\s''"`$\\]') { Write-Host 'Token has characters this uploader cannot pass safely.'; exit 2 }
+  $owner = $null
+  $repo = $null
+  if ($env:REPO_URL -match 'github\.com[:/]([^/]+)/([^/\s]+?)(?:\.git)?$') {
+    $owner = $Matches[1]
+    $repo = $Matches[2]
+  }
+  if ($owner -and $repo -and (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
+    $body = Join-Path $env:TEMP ("meetcon-gh-{0}.json" -f [guid]::NewGuid().ToString('n'))
+    $status = & curl.exe -sS -o $body -w '%{http_code}' -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' -H 'User-Agent: meetcon-upload' "https://api.github.com/repos/$owner/$repo"
+    $json = $null
+    if (Test-Path -LiteralPath $body) {
+      try { $json = Get-Content -LiteralPath $body -Raw | ConvertFrom-Json } catch { }
+    }
+    if ($status -eq '401') {
+      Write-Host 'GitHub rejected this token. Use a personal access token, not the account password.'
+      exit 4
+    }
+    if ($status -eq '403' -or $status -eq '404') {
+      if ($json.message) { Write-Host $json.message }
+      Write-Host "This token cannot write to $owner/$repo."
+      Write-Host 'Choose that repository on the token and set Contents to Read and write.'
+      exit 4
+    }
+    if ($status -eq '200' -and $json.permissions -and -not $json.permissions.push) {
+      Write-Host "This token can see $owner/$repo but cannot push."
+      Write-Host 'Set Contents to Read and write.'
+      exit 4
+    }
+  }
+  $inline = "f() { echo username='$user'; echo password='$token'; }; f"
   $env:GIT_TERMINAL_PROMPT = '0'
   $env:GCM_INTERACTIVE = 'Never'
-  & git -c credential.helper= -c credential.https://github.com.helper= -c "credential.helper=!$helper" push --force -u origin HEAD
+  & git -c credential.helper= -c credential.https://github.com.helper= -c "credential.helper=!$inline" push --force -u origin HEAD
   if ($null -eq $LASTEXITCODE) { $pushCode = 1 } else { $pushCode = $LASTEXITCODE }
 }
 finally {
   if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
   Remove-Item Env:GIT_TERMINAL_PROMPT -ErrorAction SilentlyContinue
   Remove-Item Env:GCM_INTERACTIVE -ErrorAction SilentlyContinue
-  if ($ask -and (Test-Path -LiteralPath $ask)) { Remove-Item -LiteralPath $ask -Force }
+  if ($body -and (Test-Path -LiteralPath $body)) { Remove-Item -LiteralPath $body -Force }
 }
 exit $pushCode

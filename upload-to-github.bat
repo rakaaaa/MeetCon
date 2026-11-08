@@ -95,6 +95,9 @@ if "%PUSH_ERROR%"=="2" (
 if not "%PUSH_ERROR%"=="0" (
   echo.
   echo Push failed. Saved GitHub credentials were left unchanged.
+  echo GitHub recognized the account and refused the write.
+  echo Open the token, choose only rakaaaa/MeetCon, and set Contents to Read and write.
+  echo A classic token needs the repo scope. Metadata read alone cannot push.
   goto :failed
 )
 
@@ -236,25 +239,20 @@ try {
   if ([string]::IsNullOrWhiteSpace($token)) { exit 2 }
   if ($user -match '[&|<>^%\s]') { Write-Host 'Username has characters this uploader cannot pass safely.'; exit 2 }
   if ($token -match '[&|<>^%\s]') { Write-Host 'Token has characters this uploader cannot pass safely.'; exit 2 }
-  $ask = Join-Path $env:TEMP ("git-askpass-{0}.cmd" -f [guid]::NewGuid().ToString('n'))
+  $ask = Join-Path $env:TEMP ("git-cred-{0}.cmd" -f [guid]::NewGuid().ToString('n'))
   @(
     '@echo off',
-    'echo %~1 | findstr /I "Username" >nul',
-    'if not errorlevel 1 (',
-    "  echo $user",
-    '  exit /b 0',
-    ')',
-    "echo $token"
+    "echo username=$user",
+    "echo password=$token"
   ) | Set-Content -LiteralPath $ask -Encoding ASCII
-  $env:GIT_ASKPASS = $ask
+  $helper = 'cmd.exe /C "' + ($ask.Replace('\', '/')) + '"'
   $env:GIT_TERMINAL_PROMPT = '0'
   $env:GCM_INTERACTIVE = 'Never'
-  & git -c credential.helper= push --force -u origin HEAD
+  & git -c credential.helper= -c credential.https://github.com.helper= -c "credential.helper=!$helper" push --force -u origin HEAD
   if ($null -eq $LASTEXITCODE) { $pushCode = 1 } else { $pushCode = $LASTEXITCODE }
 }
 finally {
   if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
-  Remove-Item Env:GIT_ASKPASS -ErrorAction SilentlyContinue
   Remove-Item Env:GIT_TERMINAL_PROMPT -ErrorAction SilentlyContinue
   Remove-Item Env:GCM_INTERACTIVE -ErrorAction SilentlyContinue
   if ($ask -and (Test-Path -LiteralPath $ask)) { Remove-Item -LiteralPath $ask -Force }

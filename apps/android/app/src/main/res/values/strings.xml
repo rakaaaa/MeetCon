@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MeetPlus</string>
+    <string name="loading_meetcon">Loading MeetPlus</string>
+    <string name="loading_description">Connecting to your meetups…</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="no_internet_toast">No internet connection. Check Wi-Fi or mobile data and try again.</string>
+    <string name="wifi_sign_in">This Wi-Fi network needs a sign-in before internet is available.</string>
+    <string name="wifi_sign_in_short">Wi-Fi sign-in required</string>
+    <string name="back_online">Back online</string>
+    <string name="load_failed_title">MeetPlus could not be loaded</string>
+    <string name="load_failed_message">Check your connection and try again. Your current session and page data are kept on this device.</string>
+    <string name="server_error">MeetPlus could not be reached (server error %1$d). Try again in a moment.</string>
+    <string name="retry">Retry</string>
+    <string name="external_link_failed">No browser is available to open this link.</string>
+    <string name="permission_missing_one">MeetPlus needs the %1$s permission. Enable it in system settings, then tap Retry.</string>
+    <string name="permission_missing_many">MeetPlus needs these permissions: %1$s. Enable them in system settings, then tap Retry.</string>
+    <string name="permission_internet_name">Internet</string>
+    <string name="permission_network_state_name">network access</string>
+    <string name="permission_microphone_name">microphone</string>
+    <string name="permission_camera_name">camera</string>
+    <string name="permission_location_name">location</string>
+    <string name="permission_media_name">protected media</string>
+    <string name="permission_midi_name">MIDI</string>
+    <string name="permission_generic_name">requested device</string>
+    <string name="web_permission_missing_one">MeetPlus can\'t use the %1$s because that permission is not available.</string>
+    <string name="web_permission_missing_many">MeetPlus can\'t use %1$s because those permissions are not available.</string>
+    <string name="webview_unavailable">Android System WebView is missing or disabled. Enable or update it in system settings, then tap Retry.</string>
+    <string name="webview_crashed">MeetPlus stopped unexpectedly. Tap Retry to open it again.</string>
+    <string name="secure_connection_failed">A secure connection could not be established.</string>
+</resources>

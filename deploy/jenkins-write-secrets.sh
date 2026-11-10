@@ -161,12 +161,20 @@ fill_linkedin() {
   fi
   if [ -z "$id" ]; then id="$(trim_env "${MEETCON_LINKEDIN_CLIENT_ID:-}")"; fi
   if [ -z "$secret" ]; then secret="$(trim_env "${MEETCON_LINKEDIN_CLIENT_SECRET:-}")"; fi
+  if [ -n "$id" ] && [ -f "$id" ]; then
+    id="$(trim_env "$(tr -d '\r' < "$id")")"
+  fi
+  if [ -n "$secret" ] && [ -f "$secret" ]; then
+    secret="$(trim_env "$(tr -d '\r' < "$secret")")"
+  fi
   if [ -z "$id" ] && [ -n "${MEETCON_LINKEDIN_ID_FILE:-}" ] && [ -f "${MEETCON_LINKEDIN_ID_FILE}" ]; then
     id="$(trim_env "$(tr -d '\r' < "${MEETCON_LINKEDIN_ID_FILE}")")"
   fi
   if [ -z "$secret" ] && [ -n "${MEETCON_LINKEDIN_SECRET_FILE:-}" ] && [ -f "${MEETCON_LINKEDIN_SECRET_FILE}" ]; then
     secret="$(trim_env "$(tr -d '\r' < "${MEETCON_LINKEDIN_SECRET_FILE}")")"
   fi
+  echo "Jenkins LinkedIn client id length: ${#id}"
+  echo "Jenkins LinkedIn client secret length: ${#secret}"
   origin="$(env_value WEB_ORIGIN)"
   origin="${origin%/}"
   redirect="${origin}/api/auth/linkedin/callback"

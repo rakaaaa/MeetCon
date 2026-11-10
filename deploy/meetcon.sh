@@ -140,7 +140,7 @@ cmd_deploy() {
     fi
   fi
   echo "Docker project meetcon-prod, image tag ${MEETCON_IMAGE_TAG:-production}"
-  if ! "${COMPOSE_PROD[@]}" up -d --build; then
+  if ! "${COMPOSE_PROD[@]}" up -d --build --force-recreate api gateway; then
     compose_logs
     exit 1
   fi

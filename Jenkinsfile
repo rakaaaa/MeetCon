@@ -39,46 +39,63 @@ pipeline {
             set -eu
             cd "${WORKSPACE}"
             chmod +x deploy/*.sh deploy/certs/*.sh 2>/dev/null || true
+            if [ -n "${MEETCON_LINKEDIN_CLIENT_ID:-}" ]; then
+              echo "Jenkins LinkedIn client id is available to this build."
+            else
+              echo "WARN: MEETCON_LINKEDIN_CLIENT_ID is empty. The credential must be Secret text with id meetcon-linkedin-client-id." >&2
+            fi
+            if [ -n "${MEETCON_LINKEDIN_CLIENT_SECRET:-}" ]; then
+              echo "Jenkins LinkedIn client secret is available to this build."
+            else
+              echo "WARN: MEETCON_LINKEDIN_CLIENT_SECRET is empty. The credential must be Secret text with id meetcon-linkedin-client-secret." >&2
+            fi
             bash deploy/jenkins-ci.sh
           '''
-          def withLinkedIn = { body ->
-            def linkedInStarted = false
-            try {
-              withCredentials([
-                string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
-                string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
-              ]) {
-                linkedInStarted = true
-                body()
-              }
-            } catch (err) {
-              def text = err.toString()
-              def missingLinkedIn = !linkedInStarted && (text.contains('Could not find credentials') || text.contains('CredentialsNotFound') || text.contains('meetcon-linkedin-client-'))
-              if (missingLinkedIn) {
-                echo 'LinkedIn credentials are not in Jenkins. Sign-in stays off until secret text credentials meetcon-linkedin-client-id and meetcon-linkedin-client-secret exist.'
-                body()
-              } else {
-                throw err
-              }
-            }
-          }
           if (ciOnly) {
             withEnv(['MEETCON_CI_ONLY=1']) {
               sh deploy
             }
           } else {
-            def started = false
+            def missing = { err ->
+              def text = err.toString()
+              return text.contains('Could not find credentials') || text.contains('CredentialsNotFound')
+            }
             try {
               withCredentials([file(credentialsId: credId, variable: 'MEETCON_ENV_FILE')]) {
-                started = true
-                withLinkedIn { sh deploy }
+                try {
+                  withCredentials([
+                    string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
+                    string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
+                  ]) {
+                    sh deploy
+                  }
+                } catch (err) {
+                  if (missing(err)) {
+                    echo 'LinkedIn secret text credentials were not found. Sign-in stays off.'
+                    sh deploy
+                  } else {
+                    throw err
+                  }
+                }
               }
             } catch (err) {
-              def text = err.toString()
-              def missingCreds = !started && (text.contains('Could not find credentials') || text.contains('CredentialsNotFound') || text.contains(credId))
-              if (missingCreds) {
+              if (missing(err)) {
                 echo "No secret file '${credId}'. This build will create the production env and TLS certificate on the VM, then install MeetPlus."
-                withLinkedIn { sh deploy }
+                try {
+                  withCredentials([
+                    string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
+                    string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
+                  ]) {
+                    sh deploy
+                  }
+                } catch (err2) {
+                  if (missing(err2)) {
+                    echo 'LinkedIn secret text credentials were not found. Sign-in stays off.'
+                    sh deploy
+                  } else {
+                    throw err2
+                  }
+                }
               } else {
                 throw err
               }

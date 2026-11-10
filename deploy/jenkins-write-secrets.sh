@@ -145,23 +145,27 @@ set_env_line() {
 }
 
 # Production does not use the local .env file. Copy LinkedIn when that file is still blank.
+trim_env() {
+  printf '%s' "$1" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
 fill_linkedin() {
   local id secret origin redirect
-  id="$(env_value LINKEDIN_CLIENT_ID)"
-  secret="$(env_value LINKEDIN_CLIENT_SECRET)"
+  id="$(trim_env "$(env_value LINKEDIN_CLIENT_ID)")"
+  secret="$(trim_env "$(env_value LINKEDIN_CLIENT_SECRET)")"
   if [ -z "$id" ] && [ -f .env ]; then
-    id="$(file_value .env LINKEDIN_CLIENT_ID)"
+    id="$(trim_env "$(file_value .env LINKEDIN_CLIENT_ID)")"
   fi
   if [ -z "$secret" ] && [ -f .env ]; then
-    secret="$(file_value .env LINKEDIN_CLIENT_SECRET)"
+    secret="$(trim_env "$(file_value .env LINKEDIN_CLIENT_SECRET)")"
   fi
-  if [ -z "$id" ]; then id="${MEETCON_LINKEDIN_CLIENT_ID:-}"; fi
-  if [ -z "$secret" ]; then secret="${MEETCON_LINKEDIN_CLIENT_SECRET:-}"; fi
+  if [ -z "$id" ]; then id="$(trim_env "${MEETCON_LINKEDIN_CLIENT_ID:-}")"; fi
+  if [ -z "$secret" ]; then secret="$(trim_env "${MEETCON_LINKEDIN_CLIENT_SECRET:-}")"; fi
   origin="$(env_value WEB_ORIGIN)"
   origin="${origin%/}"
   redirect="${origin}/api/auth/linkedin/callback"
   if [ -z "$id" ] || [ -z "$secret" ]; then
-    echo "WARN: LinkedIn sign-in is off until LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are in the Jenkins secret file. They are not stored in git." >&2
+    echo "WARN: LinkedIn sign-in is off. Jenkins did not pass both LinkedIn credentials into this build." >&2
     return 0
   fi
   set_env_line LINKEDIN_CLIENT_ID "$id"

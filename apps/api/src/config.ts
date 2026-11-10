@@ -2,7 +2,15 @@ import { createHash } from "node:crypto";
 import dotenv from "dotenv";
 import { z } from "zod";
 
-dotenv.config({ path: new URL("../../../.env", import.meta.url), quiet: true });
+const dotenvResult = dotenv.config({ path: new URL("../../../.env", import.meta.url), quiet: true });
+const dotenvParsed = dotenvResult.parsed ?? {};
+for (const key of ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "LINKEDIN_REDIRECT_URI"] as const) {
+  const fromProcess = process.env[key]?.trim() ?? "";
+  const fromFile = dotenvParsed[key]?.trim() ?? "";
+  const value = fromProcess || fromFile;
+  if (value) process.env[key] = value;
+  else delete process.env[key];
+}
 
 const tokenKeyPattern = /^[A-Za-z0-9_-]{43}$/;
 const emptyToUndefined = (value: unknown) => typeof value === "string" && value.trim() === "" ? undefined : value;

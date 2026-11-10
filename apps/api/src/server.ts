@@ -11,6 +11,7 @@ import { config, isProduction } from "./config.js";
 import { pool } from "./db/index.js";
 import { AppError, authenticate, noStore, requireOrigin } from "./lib.js";
 import { answerRoutes } from "./modules/answers/routes.js";
+import { linkedInConfigured } from "./modules/auth/linkedin.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { liveStateRoutes } from "./modules/live-state/routes.js";
 import { membershipRoutes } from "./modules/memberships/routes.js";
@@ -119,3 +120,4 @@ process.once("SIGINT", () => void shutdown("SIGINT"));
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
 await app.listen({ host: config.API_HOST, port: config.API_PORT });
+app.log.info({ configured: linkedInConfigured() }, "LinkedIn sign-in");

@@ -95,11 +95,10 @@ cmd_backup() {
   STAMP="$(date +%Y%m%d-%H%M%S)"
   OUT="backups/postgres-${STAMP}.sql.gz"
   mkdir -p backups
-  set -a
-  # shellcheck disable=SC1091
-  . ./.env.production
-  set +a
-  "${COMPOSE_PROD[@]}" exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$OUT"
+  local pg_user pg_db
+  pg_user="$(read_prod_env POSTGRES_USER meetcon)"
+  pg_db="$(read_prod_env POSTGRES_DB meetcon)"
+  "${COMPOSE_PROD[@]}" exec -T postgres pg_dump -U "$pg_user" -d "$pg_db" | gzip > "$OUT"
   echo "Wrote $OUT"
 }
 

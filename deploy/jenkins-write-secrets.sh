@@ -68,6 +68,32 @@ install_env_from() {
   install -m 600 .env.production "${SECRETS_DIR}/.env.production"
 }
 
+# Cookies, CORS, and QR links need the public port in WEB_ORIGIN.
+ensure_origin_port() {
+  local origin port base fixed line tmp
+  origin="$(env_value WEB_ORIGIN)"
+  port="$(env_value GATEWAY_PUBLIC_PORT)"
+  port="${port:-30098}"
+  [ -n "$origin" ] || return 0
+  if printf '%s' "$origin" | grep -qE ":${port}(/|$)"; then
+    return 0
+  fi
+  base="$(printf '%s' "$origin" | sed -E 's#/*$##; s#:[0-9]+$##')"
+  fixed="${base}:${port}"
+  tmp="$(mktemp)"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      WEB_ORIGIN=*) printf 'WEB_ORIGIN=%s\n' "$fixed" ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done < .env.production > "$tmp"
+  mv "$tmp" .env.production
+  chmod 600 .env.production
+  install -m 600 .env.production "${SECRETS_DIR}/.env.production"
+  echo "WEB_ORIGIN did not include :${port}. Updated it to ${fixed}."
+}
+
 generate_env() {
   local pass host port origin
   pass="$(random_password)"
@@ -132,6 +158,8 @@ else
   echo "No Jenkins secret file yet. Creating the first production env on this VM."
   generate_env
 fi
+
+ensure_origin_port
 
 bash deploy/validate-production-env.sh .env.production
 

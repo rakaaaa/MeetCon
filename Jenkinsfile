@@ -17,6 +17,9 @@ pipeline {
     CI = 'true'
     DOCKER_BUILDKIT = '1'
     COMPOSE_DOCKER_CLI_BUILD = '1'
+    // Secret text: the value. Secret file: a path, which the install script reads.
+    MEETCON_LINKEDIN_CLIENT_ID = credentials('meetcon-linkedin-client-id')
+    MEETCON_LINKEDIN_CLIENT_SECRET = credentials('meetcon-linkedin-client-secret')
   }
 
   stages {
@@ -53,7 +56,7 @@ pipeline {
           '''
           def credentialMiss = { err ->
             def text = err.toString()
-            return text.contains('Could not find credentials') || text.contains('CredentialsNotFound') || text.contains('was expected')
+            return text.contains('Could not find credentials') || text.contains('CredentialsNotFound')
           }
           if (ciOnly) {
             withEnv(['MEETCON_CI_ONLY=1']) {
@@ -61,38 +64,15 @@ pipeline {
             }
           } else {
             try {
-              withCredentials([
-                file(credentialsId: credId, variable: 'MEETCON_ENV_FILE'),
-                string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
-                string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
-              ]) {
+              withCredentials([file(credentialsId: credId, variable: 'MEETCON_ENV_FILE')]) {
                 sh deploy
               }
             } catch (err) {
-              if (!credentialMiss(err)) {
+              if (credentialMiss(err)) {
+                echo "No secret file '${credId}'. This build will create the production env on the VM, then install MeetPlus."
+                sh deploy
+              } else {
                 throw err
-              }
-              echo 'LinkedIn Secret text credentials were not usable. Trying Secret file credentials with the same ids.'
-              try {
-                withCredentials([
-                  file(credentialsId: credId, variable: 'MEETCON_ENV_FILE'),
-                  file(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_ID_FILE'),
-                  file(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_SECRET_FILE'),
-                ]) {
-                  sh deploy
-                }
-              } catch (err2) {
-                if (credentialMiss(err2) && !err2.toString().contains('meetcon-linkedin')) {
-                  echo "No secret file '${credId}'. This build will create the production env on the VM, then install MeetPlus."
-                  withCredentials([
-                    string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
-                    string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
-                  ]) {
-                    sh deploy
-                  }
-                } else {
-                  throw err2
-                }
               }
             }
           }

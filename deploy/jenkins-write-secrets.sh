@@ -161,6 +161,8 @@ fill_linkedin() {
   fi
   if [ -z "$id" ]; then id="$(trim_env "${MEETCON_LINKEDIN_CLIENT_ID:-}")"; fi
   if [ -z "$secret" ]; then secret="$(trim_env "${MEETCON_LINKEDIN_CLIENT_SECRET:-}")"; fi
+  if [ -z "$id" ]; then id="$(trim_env "${jenkins_linkedin_id:-}")"; fi
+  if [ -z "$secret" ]; then secret="$(trim_env "${jenkins_linkedin_secret:-}")"; fi
   if [ -n "$id" ] && [ -f "$id" ]; then
     id="$(trim_env "$(tr -d '\r' < "$id")")"
   fi
@@ -179,8 +181,8 @@ fill_linkedin() {
   origin="${origin%/}"
   redirect="${origin}/api/auth/linkedin/callback"
   if [ -z "$id" ] || [ -z "$secret" ]; then
-    echo "WARN: LinkedIn sign-in is off. Jenkins did not pass both LinkedIn credentials into this build." >&2
-    echo "Create Secret text or Secret file credentials named meetcon-linkedin-client-id and meetcon-linkedin-client-secret in this job's folder or the global domain." >&2
+    echo "WARN: LinkedIn client id length is ${#id} and client secret length is ${#secret}." >&2
+    echo "Open each Jenkins credential and paste the secret value. The id alone is not enough. Use Secret text, and paste only the value from .env." >&2
     if [ "${CI:-}" = "true" ]; then
       exit 1
     fi
@@ -230,7 +232,11 @@ generate_cert() {
   install -m 600 deploy/certs/privkey.pem "${SECRETS_DIR}/privkey.pem"
 }
 
+jenkins_linkedin_id=""
+jenkins_linkedin_secret=""
 if [ -n "${MEETCON_ENV_FILE:-}" ] && [ -f "$MEETCON_ENV_FILE" ]; then
+  jenkins_linkedin_id="$(trim_env "$(file_value "$MEETCON_ENV_FILE" LINKEDIN_CLIENT_ID)")"
+  jenkins_linkedin_secret="$(trim_env "$(file_value "$MEETCON_ENV_FILE" LINKEDIN_CLIENT_SECRET)")"
   echo "Using Jenkins credential file for .env.production."
   install -m 600 "$MEETCON_ENV_FILE" .env.production
   if example_password "$(env_value POSTGRES_PASSWORD)"; then

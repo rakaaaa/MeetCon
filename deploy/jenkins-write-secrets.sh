@@ -94,6 +94,32 @@ ensure_origin_port() {
   echo "WEB_ORIGIN did not include :${port}. Updated it to ${fixed}."
 }
 
+# Postgres is created with POSTGRES_PASSWORD. The API logs in with DATABASE_URL.
+sync_database_url() {
+  local user pass db expected current line tmp
+  user="$(env_value POSTGRES_USER)"
+  pass="$(env_value POSTGRES_PASSWORD)"
+  db="$(env_value POSTGRES_DB)"
+  user="${user:-meetcon}"
+  db="${db:-meetcon}"
+  [ -n "$pass" ] || return 0
+  expected="postgresql://${user}:${pass}@postgres:5432/${db}"
+  current="$(env_value DATABASE_URL)"
+  [ "$current" = "$expected" ] && return 0
+  tmp="$(mktemp)"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      DATABASE_URL=*) printf 'DATABASE_URL=%s\n' "$expected" ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done < .env.production > "$tmp"
+  mv "$tmp" .env.production
+  chmod 600 .env.production
+  install -m 600 .env.production "${SECRETS_DIR}/.env.production"
+  echo "DATABASE_URL now uses the same database user and password as POSTGRES_PASSWORD."
+}
+
 generate_env() {
   local pass host port origin
   pass="$(random_password)"
@@ -160,6 +186,7 @@ else
 fi
 
 ensure_origin_port
+sync_database_url
 
 bash deploy/validate-production-env.sh .env.production
 

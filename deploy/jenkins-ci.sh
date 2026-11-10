@@ -21,13 +21,12 @@ if truthy "${MEETCON_CI_ONLY:-}"; then
   exit 0
 fi
 
-if [ -n "${MEETCON_ENV_FILE:-}" ] && [ -f "$MEETCON_ENV_FILE" ]; then
-  bash deploy/jenkins-write-secrets.sh
-elif [ -f .env.production ]; then
-  echo "Using workspace .env.production."
-else
-  echo "Missing meetcon-production-env (Secret file) or .env.production" >&2
-  exit 1
+bash deploy/jenkins-write-secrets.sh
+
+port="$(grep -E '^GATEWAY_PUBLIC_PORT=' .env.production | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+port="${port:-30098}"
+if command -v ufw >/dev/null 2>&1; then
+  sudo -n ufw allow "${port}/tcp" || echo "WARN: could not open TCP ${port}. If the site is unreachable, run: sudo ufw allow ${port}/tcp" >&2
 fi
 
 if truthy "${MEETCON_ISOLATED_SIM:-}"; then

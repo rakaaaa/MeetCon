@@ -38,7 +38,7 @@ if (!existsSync(".env")) {
   console.log("Created .env from .env.example.");
 }
 
-run("docker", ["compose", "up", "-d", "--wait"]);
+run("docker", ["compose", "-f", "docker-compose.yml", "-p", "meetcon", "up", "-d", "--wait"]);
 run("corepack", ["pnpm", "migrate"]);
 
 const children = [];

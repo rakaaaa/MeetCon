@@ -60,13 +60,13 @@ Set `WEB_ORIGIN` to that exact value (including `:30098`) so session cookies, CO
    Or manually:
 
    ```sh
-   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+   COMPOSE_DISABLE_ENV_FILE=1 docker compose --env-file .env.production -f docker-compose.prod.yml -p meetcon-prod up -d --build
    ```
 
 5. Verify:
 
    ```sh
-   docker compose --env-file .env.production -f docker-compose.prod.yml ps
+   COMPOSE_DISABLE_ENV_FILE=1 docker compose --env-file .env.production -f docker-compose.prod.yml -p meetcon-prod ps
    ./deploy/meetcon.sh doctor
    curl -k "https://your-domain:30098/health"
    ```
@@ -81,7 +81,7 @@ Set `WEB_ORIGIN` to that exact value (including `:30098`) so session cookies, CO
 2. Pull new code and rebuild:
 
    ```sh
-   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+   COMPOSE_DISABLE_ENV_FILE=1 docker compose --env-file .env.production -f docker-compose.prod.yml -p meetcon-prod up -d --build
    ```
 
    Or use the CI helper (same steps as Jenkins deploy):
@@ -94,7 +94,9 @@ Set `WEB_ORIGIN` to that exact value (including `:30098`) so session cookies, CO
 
    The `migrate` service runs before `api` starts.
 
-3. Watch logs: `docker compose --env-file .env.production -f docker-compose.prod.yml logs -f api gateway`
+3. Watch logs: `COMPOSE_DISABLE_ENV_FILE=1 docker compose --env-file .env.production -f docker-compose.prod.yml -p meetcon-prod logs -f api gateway`
+
+   Images are tagged with the git commit (`meetcon-api:<sha>`, `meetcon-gateway:<sha>`). `meetcon-api:production` is an alias of the last successful deploy. To roll back, run the same command with `MEETCON_IMAGE_TAG=<older-sha>` and without `--build` if that image is still on the VM.
 
 Do **not** use `run.sh` / `run.bat` in production.
 
@@ -120,4 +122,4 @@ The app uses a full-screen WebView with **no URL bar**. Only the configured Meet
 
 ## Rollback
 
-Keep the previous image tags or git commit. Restore database from `backups/*.sql.gz` only if a migration requires it. Migrations are forward-only; test upgrades on a staging VM first.
+Keep the previous `meetcon-api:<sha>` and `meetcon-gateway:<sha>` images. Redeploy that commit with `MEETCON_IMAGE_TAG=<sha>`. Restore database from `backups/*.sql.gz` only if a migration requires it. Migrations are forward-only; test upgrades on a staging VM first. Do not reuse the local project `meetcon` or `.env`.

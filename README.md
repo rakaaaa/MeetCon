@@ -134,6 +134,26 @@ The API exposes:
 
 ## Production website (port 30098)
 
+Production is a separate Docker stack from local development. Local `run.bat`
+starts project `meetcon` (PostgreSQL, Redis, Mailpit only) and runs the app on
+the host. Production starts project `meetcon-prod` and runs the API, web, and
+database entirely in Docker.
+
+| | Local | Production | Simulation |
+|---|---|---|---|
+| Start | `run.bat` / `node run.mjs` | `run-production.bat` / `node run-production.mjs` | `./deploy/meetcon.sh simulate` |
+| Compose project | `meetcon` | `meetcon-prod` | `meetcon-sim` |
+| Env file | `.env` | `.env.production` | `.env.simulation` |
+| What Docker runs | Postgres, Redis, Mailpit | Gateway, API, Postgres, Redis | Same services, isolated volumes |
+| App images | none (host `pnpm dev`) | `meetcon-api:<git-sha>`, `meetcon-gateway:<git-sha>` | `meetcon-api:simulation`, `meetcon-gateway:simulation` |
+| URL | `http://localhost:5173` | `https://<host>:30098` | `https://127.0.0.1:30998` |
+
+`run-production` refuses to start when `.env.production` still has the local
+password, a `localhost` database URL, or an `http://` origin. Compose is started
+with `COMPOSE_DISABLE_ENV_FILE=1`, so the local `.env` cannot override it.
+Each production deploy tags images with the git commit. `meetcon-api:production`
+is an alias of that commit. Roll back with `MEETCON_IMAGE_TAG=<older-sha>`.
+
 For an Ubuntu VM with Docker, use the production stack documented in
 [`deploy/DEPLOYMENT.md`](deploy/DEPLOYMENT.md). It exposes **only** HTTPS port
 `30098` on the gateway, serves the React build, and proxies `/api` and `/media` to

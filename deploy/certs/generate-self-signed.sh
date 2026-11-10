@@ -9,12 +9,18 @@ cd "$ROOT"
 CN="${1:-meetcon.local}"
 DAYS="${2:-825}"
 
+if printf '%s' "$CN" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
+  SAN="IP:${CN},IP:127.0.0.1,DNS:localhost"
+else
+  SAN="DNS:${CN},DNS:localhost,IP:127.0.0.1"
+fi
+
 openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout privkey.pem \
   -out fullchain.pem \
   -days "$DAYS" \
   -subj "/CN=${CN}" \
-  -addext "subjectAltName=DNS:${CN},IP:127.0.0.1"
+  -addext "subjectAltName=${SAN}"
 
 chmod 600 privkey.pem
 chmod 644 fullchain.pem

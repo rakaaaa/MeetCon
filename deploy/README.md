@@ -1,6 +1,6 @@
 # MeetPlus production maintenance
 
-Small-team stack: **Docker Compose** on one VM, **HTTPS :30098**, Postgres + Redis + API + Nginx gateway. App code is unchanged (Fastify API, React web, migrations, SSE, auth, media).
+Small-team stack: **Docker Compose** project `meetcon-prod` on one VM, **HTTPS :30098**, Postgres + Redis + API + Nginx gateway. Image tags are the git commit (`meetcon-api:<sha>`, `meetcon-gateway:<sha>`). This is not the local project `meetcon` (`run.bat` / `.env`) and not the simulation project `meetcon-sim`.
 
 ## One CLI
 

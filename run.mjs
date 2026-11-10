@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
- * One command to run the full MeetPlus dev stack:
- * Docker (Postgres, Redis, Mailpit) → migrate → API + web dev servers.
+ * Local development stack (Docker project `meetcon`):
+ * PostgreSQL, Redis, and Mailpit in Docker, then the API and web app on the host.
+ *
+ * Production is separate: `node run-production.mjs` / `run-production.bat`
+ * (Docker project `meetcon-prod`, images meetcon-api and meetcon-gateway).
  *
  * Usage: node run.mjs   |   pnpm start   |   ./run.sh   |   run.bat
  */
@@ -58,8 +61,8 @@ if (!existsSync(".env")) {
 console.log("Installing dependencies…");
 run("corepack", ["pnpm", "install"]);
 
-console.log("Starting PostgreSQL, Redis, and Mailpit…");
-run("docker", ["compose", "up", "-d", "--wait"]);
+console.log("Starting local PostgreSQL, Redis, and Mailpit (project meetcon)…");
+run("docker", ["compose", "-f", "docker-compose.yml", "-p", "meetcon", "up", "-d", "--wait"]);
 
 console.log("Applying database migrations…");
 run("corepack", ["pnpm", "migrate"]);

@@ -1,44 +1,43 @@
-# Jenkins — run MeetPlus
+# Jenkins — fresh install and later deploys
 
-## Setup (once)
+One **Build Now** on the built-in node installs MeetPlus in Docker and leaves it on HTTPS port **30098**.
 
-1. **Git** on the job: repo URL, branch `main`, credentials = GitHub username + PAT.
-2. **Secret file** credential, ID **`meetcon-production-env`**, file = your `.env.production` (from `.env.production.example`).
-3. **Docker** on the Jenkins host; `jenkins` in the `docker` group.
+The job checks out this repo, prepares `.env.production` and a TLS certificate, builds the images, runs migrations, and checks `/health` plus the web app.
 
-## Each build
+## What you need on the VM
 
-**Checkout** → **Deploy** (`deploy/jenkins-ci.sh`):
+- Jenkins uses the **built-in** node (the agent label in `Jenkinsfile`).
+- Docker Engine and Compose v2 are installed.
+- The `jenkins` user can run Docker (`sudo usermod -aG docker jenkins`, then restart Jenkins).
+- The job loads this repo from Git (branch `main`).
 
-1. Write `.env.production` from Jenkins  
-2. `docker compose up --build` on **VM port 30098**  
-3. Doctor (health on `https://127.0.0.1:30098/health`)  
-4. **Smoke test** on the same port (`/health` + SPA). No second stack on 30998.
+## First build
 
-## Env file essentials
+Click **Build Now**. No secret file is required.
 
-```env
-GATEWAY_PUBLIC_PORT=30098
-WEB_ORIGIN=https://your-hostname:30098
-POSTGRES_PASSWORD=<strong-password>
-DATABASE_URL=postgresql://meetcon:<same-password>@postgres:5432/meetcon
-```
+The first build writes:
 
-`WEB_ORIGIN` **must** include `:30098`. Use the **same** password in `POSTGRES_PASSWORD` and `DATABASE_URL` (no separate encryption key).
+- `$JENKINS_HOME/meetcon/.env.production`
+- `$JENKINS_HOME/meetcon/fullchain.pem` and `privkey.pem` (self-signed)
+
+The site URL is the `WEB_ORIGIN` line in that file. The default host comes from `.env.production.example`. To choose the host before the first build, set the job environment variable `MEETCON_PUBLIC_HOST` to the public hostname.
+
+Later builds reuse those files, so the database password does not change. The Jenkins workspace is wiped every build; the saved files are not.
+
+The certificate is self-signed, so the browser shows a warning until you replace the two `.pem` files with a real certificate and build again.
+
+## Optional: bring your own env
+
+Create a **Secret file** credential with ID `meetcon-production-env` whose content is a finished `.env.production`. When that credential exists, the job uses it instead of generating one.
+
+`WEB_ORIGIN` must include `:30098`, and `DATABASE_URL` must use the Docker host `postgres` with the same password as `POSTGRES_PASSWORD`.
 
 ## Optional job environment
 
 | Variable | Effect |
 |----------|--------|
-| `MEETCON_CI_ONLY=true` | Docker check only |
-| `MEETCON_SKIP_SMOKE=1` | Deploy without smoke script |
-| `MEETCON_SMOKE_FULL=1` | Smoke also registers a test user (API + cookies) |
-| `MEETCON_ISOLATED_SIM=1` | Old flow: separate stack on `127.0.0.1:30998` |
-| `MEETCON_CI_BUILD=1` | Extra pnpm build in Node container before compose |
-
-## Without Jenkins
-
-```bash
-cp .env.production.example .env.production   # edit
-./deploy/meetcon.sh run
-```
+| `MEETCON_PUBLIC_HOST` | Hostname used the first time an env file is created |
+| `MEETCON_CI_ONLY=true` | Docker check only, no install |
+| `MEETCON_SKIP_SMOKE=1` | Install without the smoke script |
+| `MEETCON_SMOKE_FULL=1` | Smoke also registers a test user |
+| `MEETCON_ISOLATED_SIM=1` | Practice stack on `127.0.0.1:30998` instead of production |

@@ -6,8 +6,16 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-COMPOSE_PROD=(docker compose --env-file .env.production -f docker-compose.prod.yml)
-COMPOSE_SIM=(docker compose --env-file .env.simulation -f docker-compose.prod.yml -f docker-compose.sim.override.yml)
+# Production and simulation must not read the local development .env.
+export COMPOSE_DISABLE_ENV_FILE=1
+if [ -z "${MEETCON_IMAGE_TAG:-}" ]; then
+  MEETCON_IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || true)"
+  MEETCON_IMAGE_TAG="${MEETCON_IMAGE_TAG:-production}"
+  export MEETCON_IMAGE_TAG
+fi
+
+COMPOSE_PROD=(docker compose --env-file .env.production -f docker-compose.prod.yml -p meetcon-prod)
+COMPOSE_SIM=(docker compose --env-file .env.simulation -f docker-compose.prod.yml -f docker-compose.sim.override.yml -p meetcon-sim)
 SIM_PORT=30998
 
 read_prod_env() {
@@ -95,9 +103,21 @@ cmd_backup() {
   echo "Wrote $OUT"
 }
 
+tag_production_images() {
+  local tag="${MEETCON_IMAGE_TAG:-production}"
+  if [ "$tag" != "production" ]; then
+    docker tag "meetcon-api:${tag}" meetcon-api:production
+    docker tag "meetcon-gateway:${tag}" meetcon-gateway:production
+  fi
+  echo "Production images: meetcon-api:${tag}  meetcon-gateway:${tag}"
+  echo "Local development stays on project meetcon (run.bat / node run.mjs)."
+}
+
 cmd_up() {
   require_prod_files
+  echo "Docker project meetcon-prod, image tag ${MEETCON_IMAGE_TAG:-production}"
   "${COMPOSE_PROD[@]}" up -d --build "$@"
+  tag_production_images
   local port
   port="$(gateway_port)"
   echo ""
@@ -120,10 +140,12 @@ cmd_deploy() {
       echo "Skipping DB backup (postgres not running yet — normal on first deploy)."
     fi
   fi
+  echo "Docker project meetcon-prod, image tag ${MEETCON_IMAGE_TAG:-production}"
   if ! "${COMPOSE_PROD[@]}" up -d --build; then
     compose_logs
     exit 1
   fi
+  tag_production_images
   local health="https://127.0.0.1:$(gateway_port)/health"
   echo "Health: $health"
   local n=0
@@ -222,6 +244,7 @@ cmd_simulate() {
     cp .env.simulation.example .env.simulation
     echo "Created .env.simulation from example (sim-only credentials)."
   fi
+  bash deploy/validate-production-env.sh .env.simulation
 
   local sim_health="https://127.0.0.1:${SIM_PORT}/health"
   local teardown=1

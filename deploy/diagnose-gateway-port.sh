@@ -11,7 +11,8 @@ if [ "${1:-}" = "--strict" ]; then
   STRICT=1
 fi
 
-COMPOSE="docker compose --env-file .env.production -f docker-compose.prod.yml"
+export COMPOSE_DISABLE_ENV_FILE=1
+COMPOSE="docker compose --env-file .env.production -f docker-compose.prod.yml -p meetcon-prod"
 GATEWAY_CONTAINER_PORT=30098
 FAIL=0
 

@@ -1,7 +1,15 @@
+# Local development infrastructure only. Project name `meetcon`.
+# PostgreSQL, Redis, and Mailpit run here. The API and web app run on the host
+# via `node run.mjs` / `run.bat` (http://localhost:5173).
+# Production is a different Docker project: `meetcon-prod` in docker-compose.prod.yml.
+name: meetcon
+
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    labels:
+      meetcon.environment: development
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-meetcon}
       POSTGRES_USER: ${POSTGRES_USER:-meetcon}
@@ -23,6 +31,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    labels:
+      meetcon.environment: development
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -36,6 +46,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.27
     restart: unless-stopped
+    labels:
+      meetcon.environment: development
     ports:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_UI_PORT:-8025}:8025"

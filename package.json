@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node run.mjs",
     "start:local": "node run-local.mjs",
+    "start:prod": "node run-production.mjs",
     "dev": "corepack pnpm --parallel --filter @meetcon/api --filter @meetcon/web run dev",
     "build": "corepack pnpm -r --if-present run build",
     "typecheck": "corepack pnpm -r --if-present run typecheck",

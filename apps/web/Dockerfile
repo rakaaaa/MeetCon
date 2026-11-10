@@ -6,11 +6,14 @@
 
 FROM node:20-alpine AS build
 WORKDIR /repo
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN apk add --no-cache git
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/tsconfig.json packages/shared/
+COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/tsconfig.json apps/web/index.html apps/web/vite.config.ts apps/web/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --filter "@meetcon/web..."
 COPY packages/shared/src packages/shared/src
 COPY apps/web/src apps/web/src
 RUN pnpm --filter @meetcon/shared run build \

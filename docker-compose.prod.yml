@@ -1,13 +1,22 @@
+# Production website. Docker project: meetcon-prod.
+# Images: meetcon-api and meetcon-gateway, tagged with MEETCON_IMAGE_TAG (git sha, or "production").
+# Only HTTPS port 30098 is published. PostgreSQL and Redis stay on the private network.
+#
+# This file must be started with --env-file .env.production and COMPOSE_DISABLE_ENV_FILE=1.
+# That keeps the local development .env (localhost, Mailpit, password "meetcon") out of this stack.
+# Local development is docker-compose.yml, project meetcon. Simulation is meetcon-sim.
 name: meetcon-prod
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    labels:
+      meetcon.environment: production
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: "${POSTGRES_DB:?Set POSTGRES_DB in .env.production}"
+      POSTGRES_USER: "${POSTGRES_USER:?Set POSTGRES_USER in .env.production}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -21,6 +30,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    labels:
+      meetcon.environment: production
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
@@ -33,13 +44,18 @@ services:
       retries: 12
 
   migrate:
+    image: meetcon-api:${MEETCON_IMAGE_TAG:-production}
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        MEETCON_IMAGE_TAG: ${MEETCON_IMAGE_TAG:-production}
+        MEETCON_RUNTIME: production
+    labels:
+      meetcon.environment: production
     env_file:
       - .env.production
     environment:
-      DATABASE_URL: ${DATABASE_URL}
       NODE_ENV: production
     command: ["node", "dist/db/migrate.js"]
     depends_on:
@@ -50,17 +66,19 @@ services:
     restart: "no"
 
   api:
+    image: meetcon-api:${MEETCON_IMAGE_TAG:-production}
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        MEETCON_IMAGE_TAG: ${MEETCON_IMAGE_TAG:-production}
+        MEETCON_RUNTIME: production
     restart: unless-stopped
+    labels:
+      meetcon.environment: production
     env_file:
       - .env.production
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      WEB_ORIGIN: ${WEB_ORIGIN}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       NODE_ENV: production
       API_HOST: 0.0.0.0
       API_PORT: 3001
@@ -86,10 +104,16 @@ services:
       start_period: 25s
 
   gateway:
+    image: meetcon-gateway:${MEETCON_IMAGE_TAG:-production}
     build:
       context: .
       dockerfile: deploy/gateway/Dockerfile
+      args:
+        MEETCON_IMAGE_TAG: ${MEETCON_IMAGE_TAG:-production}
+        MEETCON_RUNTIME: production
     restart: unless-stopped
+    labels:
+      meetcon.environment: production
     # Host (VM) port → gateway HTTPS listener inside the container (nginx listen 30098).
     ports:
       - "0.0.0.0:${GATEWAY_PUBLIC_PORT:-30098}:30098"

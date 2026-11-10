@@ -17,8 +17,9 @@ for arg in "$@"; do
   esac
 done
 
-COMPOSE_PROD="docker compose --env-file .env.production -f docker-compose.prod.yml"
-COMPOSE_DEV="docker compose -f docker-compose.yml"
+export COMPOSE_DISABLE_ENV_FILE=1
+COMPOSE_PROD="docker compose --env-file .env.production -f docker-compose.prod.yml -p meetcon-prod"
+COMPOSE_DEV="docker compose -f docker-compose.yml -p meetcon"
 GATEWAY_CONTAINER_PORT=30098
 FAIL=0
 
@@ -75,12 +76,12 @@ run_ci_build() {
   if [ ! -f .env.production.example ]; then
     fail ".env.production.example missing"
   else
-    docker compose --env-file .env.production.example -f docker-compose.prod.yml config --quiet \
+    COMPOSE_DISABLE_ENV_FILE=1 docker compose --env-file .env.production.example -f docker-compose.prod.yml -p meetcon-prod config --quiet \
       && ok "docker-compose.prod.yml renders"
   fi
 
   if [ -f docker-compose.yml ]; then
-    docker compose -f docker-compose.yml config --quiet && ok "docker-compose.yml renders"
+    docker compose -f docker-compose.yml -p meetcon config --quiet && ok "docker-compose.yml renders"
   fi
 
   finish

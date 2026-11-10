@@ -4,7 +4,7 @@
  */
 import process from "node:process";
 
-const base = (process.env.SIM_BASE_URL ?? "https://127.0.0.1:30098").replace(/\/$/, "");
+const base = (process.env.SIM_BASE_URL ?? "http://127.0.0.1:30098").replace(/\/$/, "");
 const webOrigin = (process.env.SIM_WEB_ORIGIN ?? process.env.WEB_ORIGIN ?? base).replace(/\/$/, "");
 const smokeFull = ["1", "true", "yes", "on"].includes(
   (process.env.SMOKE_FULL ?? "").toLowerCase(),

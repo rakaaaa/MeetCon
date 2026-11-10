@@ -84,5 +84,5 @@ if (imageTag !== "production") {
 
 console.log("");
 console.log(`Production images meetcon-api:${imageTag} and meetcon-gateway:${imageTag} are running.`);
-console.log("Health: curl -k https://127.0.0.1:30098/health");
+console.log("Health: curl http://127.0.0.1:30098/health");
 console.log("The :production tag points at this build. Roll back with MEETCON_IMAGE_TAG=<older-sha>.");

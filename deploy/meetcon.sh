@@ -122,7 +122,7 @@ cmd_up() {
   echo ""
   echo "Stack up on 0.0.0.0:${port} → gateway :30098"
   echo "Public URL is WEB_ORIGIN (https://meetcon.aiadoptionecosystem.com). Port ${port} is internal."
-  echo "Health: curl -k https://127.0.0.1:${port}/health"
+  echo "Health: curl http://127.0.0.1:${port}/health"
 }
 
 postgres_running() {
@@ -145,7 +145,7 @@ cmd_deploy() {
     exit 1
   fi
   tag_production_images
-  local health="https://127.0.0.1:$(gateway_port)/health"
+  local health="http://127.0.0.1:$(gateway_port)/health"
   echo "Health: $health"
   local n=0
   while [ "$n" -lt 24 ]; do
@@ -170,7 +170,7 @@ run_smoke_test() {
   else
     port="$(gateway_port)"
     origin="$(read_prod_env WEB_ORIGIN '')"
-    base="https://127.0.0.1:${port}"
+    base="http://127.0.0.1:${port}"
     if [ -z "$origin" ]; then
       echo "WARN WEB_ORIGIN unset — using ${base} for smoke Origin header" >&2
       origin="$base"
@@ -216,7 +216,7 @@ cmd_doctor() {
   local port origin health
   port="$(gateway_port)"
   origin="$(read_prod_env WEB_ORIGIN '')"
-  health="https://127.0.0.1:${port}/health"
+  health="http://127.0.0.1:${port}/health"
   echo "=== MeetPlus doctor ==="
   echo "GATEWAY_PUBLIC_PORT=${port} WEB_ORIGIN=${origin:-<unset>}"
   "${COMPOSE_PROD[@]}" ps || true
@@ -245,7 +245,7 @@ cmd_simulate() {
   fi
   bash deploy/validate-production-env.sh .env.simulation
 
-  local sim_health="https://127.0.0.1:${SIM_PORT}/health"
+  local sim_health="http://127.0.0.1:${SIM_PORT}/health"
   local teardown=1
   [ "${MEETCON_KEEP_SIM:-0}" = "1" ] && teardown=0
 
@@ -275,7 +275,7 @@ cmd_simulate() {
   ok_sim() { echo "SIM OK: $*"; }
   ok_sim "stack health $sim_health"
 
-  SIM_BASE_URL="https://127.0.0.1:${SIM_PORT}" SIM_WEB_ORIGIN="https://127.0.0.1:${SIM_PORT}" \
+  SIM_BASE_URL="http://127.0.0.1:${SIM_PORT}" SIM_WEB_ORIGIN="https://127.0.0.1:${SIM_PORT}" \
     MEETCON_SMOKE_FULL="${MEETCON_SMOKE_FULL:-1}" run_smoke_test
 
   if [ "$teardown" = 1 ]; then

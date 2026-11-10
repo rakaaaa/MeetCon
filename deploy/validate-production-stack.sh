@@ -175,8 +175,8 @@ run_post_deploy() {
   fi
 
   echo ""
-  info "Gateway HTTPS on host :${GATEWAY_PUBLIC_PORT}..."
-  gw_health="https://127.0.0.1:${GATEWAY_PUBLIC_PORT}/health"
+  info "Gateway on host :${GATEWAY_PUBLIC_PORT}..."
+  gw_health="http://127.0.0.1:${GATEWAY_PUBLIC_PORT}/health"
   if command -v curl >/dev/null 2>&1; then
     if curl -kfsS --max-time 15 "$gw_health" | grep -q '"status":"ok"'; then
       ok "gateway proxied GET /health"
@@ -185,14 +185,14 @@ run_post_deploy() {
     fi
 
     session_code="$(curl -kfsS -o /tmp/meetcon-session.json -w '%{http_code}' --max-time 15 \
-      "https://127.0.0.1:${GATEWAY_PUBLIC_PORT}/api/auth/session" || echo 000)"
+      "http://127.0.0.1:${GATEWAY_PUBLIC_PORT}/api/auth/session" || echo 000)"
     if [ "$session_code" = "200" ] && grep -q '"user"' /tmp/meetcon-session.json 2>/dev/null; then
       ok "gateway proxied GET /api/auth/session (HTTP 200)"
     else
       fail "gateway /api/auth/session expected 200 with user field (got ${session_code})"
     fi
 
-    if curl -kfsS --max-time 15 "https://127.0.0.1:${GATEWAY_PUBLIC_PORT}/" | grep -qiE '<html|id="root"|<!DOCTYPE'; then
+    if curl -kfsS --max-time 15 "http://127.0.0.1:${GATEWAY_PUBLIC_PORT}/" | grep -qiE '<html|id="root"|<!DOCTYPE'; then
       ok "gateway serves SPA index.html"
     else
       fail "gateway did not return SPA HTML at /"

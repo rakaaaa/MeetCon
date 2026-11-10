@@ -26,4 +26,4 @@ LABEL org.opencontainers.image.title="meetcon-gateway" \
       org.opencontainers.image.version="${MEETCON_IMAGE_TAG}" \
       meetcon.runtime="${MEETCON_RUNTIME}"
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 --start-period=10s \
-  CMD wget -qO- --no-check-certificate https://127.0.0.1:30098/health || exit 1
+  CMD wget -qO- http://127.0.0.1:30098/health || exit 1

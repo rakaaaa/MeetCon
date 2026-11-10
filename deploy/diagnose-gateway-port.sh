@@ -160,8 +160,8 @@ if command -v ufw >/dev/null 2>&1; then
 fi
 
 echo ""
-info "HTTPS probe via loopback (gateway TLS):"
-health_url="https://127.0.0.1:${GATEWAY_PUBLIC_PORT}/health"
+info "Probe via loopback (VM port ${GATEWAY_PUBLIC_PORT}):"
+health_url="http://127.0.0.1:${GATEWAY_PUBLIC_PORT}/health"
 if command -v curl >/dev/null 2>&1; then
   if curl -kfsS --max-time 10 "$health_url" >/dev/null 2>&1; then
     ok "curl ${health_url}"

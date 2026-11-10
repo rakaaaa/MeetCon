@@ -21,8 +21,42 @@ random_password() {
   od -An -N24 -tx1 /dev/urandom | tr -d ' \n'
 }
 
+file_value() {
+  grep -E "^${2}=" "$1" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' || true
+}
+
 env_value() {
-  grep -E "^${1}=" .env.production | tail -1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+  file_value .env.production "$1"
+}
+
+example_password() {
+  case "$1" in
+    ""|meetcon|change-me|change-me-use-openssl-rand-base64-24) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Keep WEB_ORIGIN and the rest of the Jenkins file. Replace only the sample database password.
+replace_example_password() {
+  local new user db line tmp
+  new="$(random_password)"
+  user="$(env_value POSTGRES_USER)"
+  db="$(env_value POSTGRES_DB)"
+  user="${user:-meetcon}"
+  db="${db:-meetcon}"
+  tmp="$(mktemp)"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      POSTGRES_PASSWORD=*) printf 'POSTGRES_PASSWORD=%s\n' "$new" ;;
+      DATABASE_URL=*) printf 'DATABASE_URL=postgresql://%s:%s@postgres:5432/%s\n' "$user" "$new" "$db" ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done < .env.production > "$tmp"
+  mv "$tmp" .env.production
+  chmod 600 .env.production
+  install -m 600 .env.production "${SECRETS_DIR}/.env.production"
+  echo "Jenkins file still had the example database password. A password was generated and saved at ${SECRETS_DIR}/.env.production. It is not printed here."
 }
 
 origin_host() {
@@ -73,7 +107,21 @@ generate_cert() {
 
 if [ -n "${MEETCON_ENV_FILE:-}" ] && [ -f "$MEETCON_ENV_FILE" ]; then
   echo "Using Jenkins credential file for .env.production."
-  install_env_from "$MEETCON_ENV_FILE"
+  install -m 600 "$MEETCON_ENV_FILE" .env.production
+  if example_password "$(env_value POSTGRES_PASSWORD)"; then
+    saved_pass=""
+    if [ -f "${SECRETS_DIR}/.env.production" ]; then
+      saved_pass="$(file_value "${SECRETS_DIR}/.env.production" POSTGRES_PASSWORD)"
+    fi
+    if ! example_password "$saved_pass"; then
+      echo "Keeping the database password already saved on this VM."
+      install_env_from "${SECRETS_DIR}/.env.production"
+    else
+      replace_example_password
+    fi
+  else
+    install -m 600 .env.production "${SECRETS_DIR}/.env.production"
+  fi
 elif [ -f "${SECRETS_DIR}/.env.production" ]; then
   echo "Reusing saved production env from ${SECRETS_DIR}."
   install_env_from "${SECRETS_DIR}/.env.production"

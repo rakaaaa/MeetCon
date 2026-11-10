@@ -126,6 +126,51 @@ sync_database_url() {
   echo "DATABASE_URL now uses the same database user and password as POSTGRES_PASSWORD."
 }
 
+set_env_line() {
+  local key="$1" value="$2" line tmp found
+  tmp="$(mktemp)"
+  found=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      "${key}="*) printf '%s=%s\n' "$key" "$value"; found=1 ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done < .env.production > "$tmp"
+  if [ "$found" -eq 0 ]; then
+    printf '%s=%s\n' "$key" "$value" >> "$tmp"
+  fi
+  mv "$tmp" .env.production
+  chmod 600 .env.production
+}
+
+# Production does not use the local .env file. Copy LinkedIn when that file is still blank.
+fill_linkedin() {
+  local id secret origin redirect
+  id="$(env_value LINKEDIN_CLIENT_ID)"
+  secret="$(env_value LINKEDIN_CLIENT_SECRET)"
+  if [ -z "$id" ] && [ -f .env ]; then
+    id="$(file_value .env LINKEDIN_CLIENT_ID)"
+  fi
+  if [ -z "$secret" ] && [ -f .env ]; then
+    secret="$(file_value .env LINKEDIN_CLIENT_SECRET)"
+  fi
+  if [ -z "$id" ]; then id="${MEETCON_LINKEDIN_CLIENT_ID:-}"; fi
+  if [ -z "$secret" ]; then secret="${MEETCON_LINKEDIN_CLIENT_SECRET:-}"; fi
+  origin="$(env_value WEB_ORIGIN)"
+  origin="${origin%/}"
+  redirect="${origin}/api/auth/linkedin/callback"
+  if [ -z "$id" ] || [ -z "$secret" ]; then
+    echo "WARN: LinkedIn sign-in is off until LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are in the Jenkins secret file. They are not stored in git." >&2
+    return 0
+  fi
+  set_env_line LINKEDIN_CLIENT_ID "$id"
+  set_env_line LINKEDIN_CLIENT_SECRET "$secret"
+  set_env_line LINKEDIN_REDIRECT_URI "$redirect"
+  install -m 600 .env.production "${SECRETS_DIR}/.env.production"
+  echo "LinkedIn sign-in is configured. Register this redirect URL on the LinkedIn app: ${redirect}"
+}
+
 generate_env() {
   local pass host port origin
   pass="$(random_password)"
@@ -192,6 +237,7 @@ else
 fi
 
 ensure_public_origin
+fill_linkedin
 sync_database_url
 
 bash deploy/validate-production-env.sh .env.production

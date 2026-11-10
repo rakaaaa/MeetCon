@@ -189,7 +189,7 @@ fill_linkedin() {
   redirect="${origin}/api/auth/linkedin/callback"
   if [ -z "$id" ] || [ -z "$secret" ]; then
     echo "WARN: LinkedIn client id length is ${#id} and client secret length is ${#secret}." >&2
-    echo "Open each Jenkins credential and paste the secret value. The id alone is not enough. Use Secret text, and paste only the value from .env." >&2
+    echo "Add LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET to the Jenkins secret file meetcon-production-env." >&2
     if [ "${CI:-}" = "true" ]; then
       exit 1
     fi
@@ -245,6 +245,7 @@ if [ -n "${MEETCON_ENV_FILE:-}" ] && [ -f "$MEETCON_ENV_FILE" ]; then
   jenkins_linkedin_id="$(trim_env "$(file_value "$MEETCON_ENV_FILE" LINKEDIN_CLIENT_ID)")"
   jenkins_linkedin_secret="$(trim_env "$(file_value "$MEETCON_ENV_FILE" LINKEDIN_CLIENT_SECRET)")"
   echo "Using Jenkins credential file for .env.production."
+  echo "LinkedIn lines in that file: id length ${#jenkins_linkedin_id}, secret length ${#jenkins_linkedin_secret}."
   install -m 600 "$MEETCON_ENV_FILE" .env.production
   if example_password "$(env_value POSTGRES_PASSWORD)"; then
     saved_pass=""

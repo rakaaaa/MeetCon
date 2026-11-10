@@ -159,6 +159,12 @@ fill_linkedin() {
   if [ -z "$secret" ] && [ -f .env ]; then
     secret="$(trim_env "$(file_value .env LINKEDIN_CLIENT_SECRET)")"
   fi
+  if [ -z "$id" ] && [ -f deploy/.linkedin-id ]; then
+    id="$(trim_env "$(tr -d '\r' < deploy/.linkedin-id)")"
+  fi
+  if [ -z "$secret" ] && [ -f deploy/.linkedin-secret ]; then
+    secret="$(trim_env "$(tr -d '\r' < deploy/.linkedin-secret)")"
+  fi
   if [ -z "$id" ]; then id="$(trim_env "${MEETCON_LINKEDIN_CLIENT_ID:-}")"; fi
   if [ -z "$secret" ]; then secret="$(trim_env "${MEETCON_LINKEDIN_CLIENT_SECRET:-}")"; fi
   if [ -z "$id" ]; then id="$(trim_env "${jenkins_linkedin_id:-}")"; fi
@@ -175,6 +181,7 @@ fill_linkedin() {
   if [ -z "$secret" ] && [ -n "${MEETCON_LINKEDIN_SECRET_FILE:-}" ] && [ -f "${MEETCON_LINKEDIN_SECRET_FILE}" ]; then
     secret="$(trim_env "$(tr -d '\r' < "${MEETCON_LINKEDIN_SECRET_FILE}")")"
   fi
+  rm -f deploy/.linkedin-id deploy/.linkedin-secret
   echo "Jenkins LinkedIn client id length: ${#id}"
   echo "Jenkins LinkedIn client secret length: ${#secret}"
   origin="$(env_value WEB_ORIGIN)"

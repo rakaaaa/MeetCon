@@ -17,9 +17,6 @@ pipeline {
     CI = 'true'
     DOCKER_BUILDKIT = '1'
     COMPOSE_DOCKER_CLI_BUILD = '1'
-    // Secret text: the value. Secret file: a path, which the install script reads.
-    MEETCON_LINKEDIN_CLIENT_ID = credentials('meetcon-linkedin-client-id')
-    MEETCON_LINKEDIN_CLIENT_SECRET = credentials('meetcon-linkedin-client-secret')
   }
 
   stages {
@@ -38,19 +35,28 @@ pipeline {
         script {
           def ciOnly = (env.MEETCON_CI_ONLY ?: '').trim().toLowerCase() in ['1', 'true', 'yes', 'on']
           def credId = (env.MEETCON_CREDS_ENV ?: 'meetcon-production-env').trim()
-          def deploy = '''#!/usr/bin/env bash
+          def deploy = '''
             set -eu
             cd "${WORKSPACE}"
             chmod +x deploy/*.sh deploy/certs/*.sh 2>/dev/null || true
+            umask 077
             if [ -n "${MEETCON_LINKEDIN_CLIENT_ID:-}" ]; then
-              echo "Jenkins LinkedIn client id is available to this build."
+              printf %s "$MEETCON_LINKEDIN_CLIENT_ID" > deploy/.linkedin-id
+              echo "LinkedIn client id reached the shell. Length ${#MEETCON_LINKEDIN_CLIENT_ID}."
+            elif [ -n "${MEETCON_LINKEDIN_ID_FILE:-}" ] && [ -f "$MEETCON_LINKEDIN_ID_FILE" ]; then
+              cp "$MEETCON_LINKEDIN_ID_FILE" deploy/.linkedin-id
+              echo "LinkedIn client id was read from a Jenkins secret file."
             else
-              echo "WARN: MEETCON_LINKEDIN_CLIENT_ID is empty. The credential must be Secret text with id meetcon-linkedin-client-id." >&2
+              echo "WARN: LinkedIn client id did not reach the shell." >&2
             fi
             if [ -n "${MEETCON_LINKEDIN_CLIENT_SECRET:-}" ]; then
-              echo "Jenkins LinkedIn client secret is available to this build."
+              printf %s "$MEETCON_LINKEDIN_CLIENT_SECRET" > deploy/.linkedin-secret
+              echo "LinkedIn client secret reached the shell. Length ${#MEETCON_LINKEDIN_CLIENT_SECRET}."
+            elif [ -n "${MEETCON_LINKEDIN_SECRET_FILE:-}" ] && [ -f "$MEETCON_LINKEDIN_SECRET_FILE" ]; then
+              cp "$MEETCON_LINKEDIN_SECRET_FILE" deploy/.linkedin-secret
+              echo "LinkedIn client secret was read from a Jenkins secret file."
             else
-              echo "WARN: MEETCON_LINKEDIN_CLIENT_SECRET is empty. The credential must be Secret text with id meetcon-linkedin-client-secret." >&2
+              echo "WARN: LinkedIn client secret did not reach the shell." >&2
             fi
             bash deploy/jenkins-ci.sh
           '''
@@ -64,15 +70,38 @@ pipeline {
             }
           } else {
             try {
-              withCredentials([file(credentialsId: credId, variable: 'MEETCON_ENV_FILE')]) {
+              withCredentials([
+                file(credentialsId: credId, variable: 'MEETCON_ENV_FILE'),
+                string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
+                string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
+              ]) {
                 sh deploy
               }
             } catch (err) {
-              if (credentialMiss(err)) {
-                echo "No secret file '${credId}'. This build will create the production env on the VM, then install MeetPlus."
-                sh deploy
-              } else {
+              if (!credentialMiss(err)) {
                 throw err
+              }
+              echo 'Secret text binding failed. Trying the same ids as Secret files.'
+              try {
+                withCredentials([
+                  file(credentialsId: credId, variable: 'MEETCON_ENV_FILE'),
+                  file(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_ID_FILE'),
+                  file(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_SECRET_FILE'),
+                ]) {
+                  sh deploy
+                }
+              } catch (err2) {
+                if (credentialMiss(err2) && !err2.toString().contains('meetcon-linkedin')) {
+                  echo "No secret file '${credId}'. This build will create the production env on the VM, then install MeetPlus."
+                  withCredentials([
+                    string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
+                    string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
+                  ]) {
+                    sh deploy
+                  }
+                } else {
+                  throw err2
+                }
               }
             }
           }

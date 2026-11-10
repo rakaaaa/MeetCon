@@ -34,6 +34,15 @@ Create a **Secret file** credential with ID `meetcon-production-env` whose conte
 
 `WEB_ORIGIN` is `https://meetcon.aiadoptionecosystem.com` with no port. Docker listens on port `30098` behind that name. `DATABASE_URL` must use the Docker host `postgres` with the same password as `POSTGRES_PASSWORD`.
 
+LinkedIn sign-in reads two **Secret text** credentials. Create them in Jenkins and paste the values from your local `.env`. Do not commit those values.
+
+| Credential ID | Value |
+|---------------|--------|
+| `meetcon-linkedin-client-id` | `LINKEDIN_CLIENT_ID` |
+| `meetcon-linkedin-client-secret` | `LINKEDIN_CLIENT_SECRET` |
+
+Also register this redirect URL on the LinkedIn app: `https://meetcon.aiadoptionecosystem.com/api/auth/linkedin/callback`
+
 ## Optional job environment
 
 | Variable | Effect |

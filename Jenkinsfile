@@ -41,6 +41,27 @@ pipeline {
             chmod +x deploy/*.sh deploy/certs/*.sh 2>/dev/null || true
             bash deploy/jenkins-ci.sh
           '''
+          def withLinkedIn = { body ->
+            def linkedInStarted = false
+            try {
+              withCredentials([
+                string(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_CLIENT_ID'),
+                string(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_CLIENT_SECRET'),
+              ]) {
+                linkedInStarted = true
+                body()
+              }
+            } catch (err) {
+              def text = err.toString()
+              def missingLinkedIn = !linkedInStarted && (text.contains('Could not find credentials') || text.contains('CredentialsNotFound') || text.contains('meetcon-linkedin-client-'))
+              if (missingLinkedIn) {
+                echo 'LinkedIn credentials are not in Jenkins. Sign-in stays off until secret text credentials meetcon-linkedin-client-id and meetcon-linkedin-client-secret exist.'
+                body()
+              } else {
+                throw err
+              }
+            }
+          }
           if (ciOnly) {
             withEnv(['MEETCON_CI_ONLY=1']) {
               sh deploy
@@ -50,14 +71,14 @@ pipeline {
             try {
               withCredentials([file(credentialsId: credId, variable: 'MEETCON_ENV_FILE')]) {
                 started = true
-                sh deploy
+                withLinkedIn { sh deploy }
               }
             } catch (err) {
               def text = err.toString()
               def missingCreds = !started && (text.contains('Could not find credentials') || text.contains('CredentialsNotFound') || text.contains(credId))
               if (missingCreds) {
                 echo "No secret file '${credId}'. This build will create the production env and TLS certificate on the VM, then install MeetPlus."
-                sh deploy
+                withLinkedIn { sh deploy }
               } else {
                 throw err
               }
@@ -73,7 +94,7 @@ pipeline {
       echo 'MeetPlus is up. Open the WEB_ORIGIN printed in the Deploy log (default port 30098).'
     }
     failure {
-      echo 'Check: jenkins user is in the docker group, and WEB_ORIGIN in the saved env includes :30098.'
+      echo 'Check: jenkins user is in the docker group. LinkedIn sign-in needs the two Jenkins secret text credentials.'
     }
   }
 }

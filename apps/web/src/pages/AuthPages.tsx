@@ -11,7 +11,7 @@ function AuthFrame({ children, title, text }: { children: React.ReactNode; title
   return <main className="auth-page"><div className="auth-brand"><Logo /><h1>Every voice.<br/><span>Right on time.</span></h1><p>Energetic, focused meetups built around moments that matter.</p></div><Card className="auth-card"><Logo /><h1>{title}</h1><p>{text}</p>{children}</Card></main>;
 }
 const linkedInErrors: Record<string, string> = {
-  linkedin_not_configured: "LinkedIn sign-in needs LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in .env.",
+  linkedin_not_configured: "LinkedIn sign-in is not configured on this server.",
   linkedin_denied: "LinkedIn sign-in was cancelled.",
   linkedin_scope: "This LinkedIn app cannot sign people in yet. In the LinkedIn developer portal, open the app, choose Products, and add “Sign In with LinkedIn using OpenID Connect”.",
   linkedin_state: "That sign-in expired. Try again.",

@@ -13,9 +13,9 @@ flowchart LR
   api --> redis[(Redis)]
 ```
 
-Public URL example: `https://meetcon.example.com:30098`
+Public URL: `https://meetcon.aiadoptionecosystem.com`
 
-Set `WEB_ORIGIN` to that exact value (including `:30098`) so session cookies, CORS, password-reset links, and meetup QR codes match.
+Set `WEB_ORIGIN` to that exact value, with no port. Docker listens on port `30098` behind that name. Session cookies, CORS, password-reset links, and meetup QR codes use `WEB_ORIGIN`.
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ Set `WEB_ORIGIN` to that exact value (including `:30098`) so session cookies, CO
 
    Use the same password in `POSTGRES_PASSWORD` and `DATABASE_URL` (the API derives encryption from the DB password).
 
-   Set `WEB_ORIGIN=https://your-domain:30098` and strong `POSTGRES_PASSWORD` / SMTP credentials.
+   Set `WEB_ORIGIN=https://meetcon.aiadoptionecosystem.com` and a strong `POSTGRES_PASSWORD` / SMTP credentials. Port `30098` stays on the Docker gateway.
 
 3. Install TLS files (see [deploy/certs/README.md](certs/README.md)):
 

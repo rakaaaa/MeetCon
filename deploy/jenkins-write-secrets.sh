@@ -68,30 +68,36 @@ install_env_from() {
   install -m 600 .env.production "${SECRETS_DIR}/.env.production"
 }
 
-# Cookies, CORS, and QR links need the public port in WEB_ORIGIN.
-ensure_origin_port() {
-  local origin port base fixed line tmp
+# Public site is https://meetcon.aiadoptionecosystem.com (port 443).
+# Docker publishes container 30098 on the VM's port 30098.
+ensure_public_origin() {
+  local origin fixed current_origin current_port line tmp
   origin="$(env_value WEB_ORIGIN)"
-  port="$(env_value GATEWAY_PUBLIC_PORT)"
-  port="${port:-30098}"
-  [ -n "$origin" ] || return 0
-  if printf '%s' "$origin" | grep -qE ":${port}(/|$)"; then
-    return 0
+  origin="${origin%/}"
+  origin="$(printf '%s' "$origin" | sed -E 's#:30098$##')"
+  if [ -z "$origin" ]; then
+    origin="https://meetcon.aiadoptionecosystem.com"
   fi
-  base="$(printf '%s' "$origin" | sed -E 's#/*$##; s#:[0-9]+$##')"
-  fixed="${base}:${port}"
+  fixed="$origin"
+  current_origin="$(env_value WEB_ORIGIN)"
+  current_port="$(env_value GATEWAY_PUBLIC_PORT)"
+  [ "$current_origin" = "$fixed" ] && [ "$current_port" = "30098" ] && return 0
   tmp="$(mktemp)"
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
     case "$line" in
       WEB_ORIGIN=*) printf 'WEB_ORIGIN=%s\n' "$fixed" ;;
+      GATEWAY_PUBLIC_PORT=*) printf 'GATEWAY_PUBLIC_PORT=30098\n' ;;
       *) printf '%s\n' "$line" ;;
     esac
   done < .env.production > "$tmp"
+  if ! grep -q '^GATEWAY_PUBLIC_PORT=' "$tmp"; then
+    printf 'GATEWAY_PUBLIC_PORT=30098\n' >> "$tmp"
+  fi
   mv "$tmp" .env.production
   chmod 600 .env.production
   install -m 600 .env.production "${SECRETS_DIR}/.env.production"
-  echo "WEB_ORIGIN did not include :${port}. Updated it to ${fixed}."
+  echo "Public URL is ${fixed}. Docker port 30098 is mapped to VM port 30098."
 }
 
 # Postgres is created with POSTGRES_PASSWORD. The API logs in with DATABASE_URL.
@@ -123,13 +129,13 @@ sync_database_url() {
 generate_env() {
   local pass host port origin
   pass="$(random_password)"
-  port="${MEETCON_PUBLIC_PORT:-30098}"
+  port="30098"
   if [ -n "${MEETCON_PUBLIC_HOST:-}" ]; then
     host="${MEETCON_PUBLIC_HOST}"
   else
     host="$(origin_host "$(grep -E '^WEB_ORIGIN=' .env.production.example | tail -1 | cut -d= -f2- | tr -d '\r')")"
   fi
-  origin="https://${host}:${port}"
+  origin="https://${host}"
   umask 077
   sed -e "s/change-me-use-openssl-rand-base64-24/${pass}/g" \
       -e "s/^SMTP_PASSWORD=change-me$/SMTP_PASSWORD=/" \
@@ -185,7 +191,7 @@ else
   generate_env
 fi
 
-ensure_origin_port
+ensure_public_origin
 sync_database_url
 
 bash deploy/validate-production-env.sh .env.production

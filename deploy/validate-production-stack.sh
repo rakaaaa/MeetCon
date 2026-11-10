@@ -104,8 +104,8 @@ run_preflight() {
     origin="$(read_env_var WEB_ORIGIN '')"
     info "GATEWAY_PUBLIC_PORT=${port}"
     info "WEB_ORIGIN=${origin}"
-    if [ -n "$origin" ] && ! echo "$origin" | grep -q ":${port}"; then
-      fail "WEB_ORIGIN must include :${port} (cookies, CORS, QR links)"
+    if [ -n "$origin" ] && echo "$origin" | grep -q ":${port}"; then
+      warn "WEB_ORIGIN includes internal port :${port}; public URL should be https://meetcon.aiadoptionecosystem.com"
     fi
   fi
 

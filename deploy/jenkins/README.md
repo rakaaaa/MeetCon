@@ -15,6 +15,8 @@ The job checks out this repo, prepares `.env.production` and a TLS certificate, 
 
 Click **Build Now**. No secret file is required.
 
+The first build removes any previous MeetPlus containers, database volume, and saved settings, then installs a new one. After that build succeeds, later builds keep the database. Set `MEETCON_WIPE=1` only when you intend to delete that database and install again.
+
 The first build writes:
 
 - `$JENKINS_HOME/meetcon/.env.production`
@@ -30,7 +32,7 @@ The certificate is self-signed, so the browser shows a warning until you replace
 
 Create a **Secret file** credential with ID `meetcon-production-env` whose content is a finished `.env.production`. When that credential exists, the job uses it instead of generating one.
 
-`WEB_ORIGIN` must include `:30098`, and `DATABASE_URL` must use the Docker host `postgres` with the same password as `POSTGRES_PASSWORD`.
+`WEB_ORIGIN` is `https://meetcon.aiadoptionecosystem.com` with no port. Docker listens on port `30098` behind that name. `DATABASE_URL` must use the Docker host `postgres` with the same password as `POSTGRES_PASSWORD`.
 
 ## Optional job environment
 

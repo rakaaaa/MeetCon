@@ -42,7 +42,7 @@ Wrappers (`up.sh`, `deploy-from-ci.sh`, …) call the same CLI.
 
 ## One-time VM setup
 
-1. `cp .env.production.example .env.production` — set `WEB_ORIGIN=https://<host>:30098`
+1. `cp .env.production.example .env.production` — `WEB_ORIGIN=https://meetcon.aiadoptionecosystem.com` (port 30098 is internal)
 2. TLS: `deploy/certs/fullchain.pem`, `privkey.pem`
 3. `./deploy/meetcon.sh up`
 4. Jenkins **built-in node** on the VM → **Build Now** ([jenkins/README.md](jenkins/README.md))

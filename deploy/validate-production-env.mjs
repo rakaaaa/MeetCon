@@ -62,9 +62,11 @@ if (origin && !origin.startsWith("https://")) {
   fail(`WEB_ORIGIN in ${file} must start with https://`);
 }
 
-const port = get("GATEWAY_PUBLIC_PORT") || (basename(file) === ".env.simulation" ? "30998" : "30098");
-if (origin && !new RegExp(`:${port}(/|$)`).test(origin)) {
-  console.error(`WARN: WEB_ORIGIN should include :${port} (got ${origin})`);
+if (basename(file) === ".env.simulation") {
+  const port = get("GATEWAY_PUBLIC_PORT") || "30998";
+  if (origin && !new RegExp(`:${port}(/|$)`).test(origin)) {
+    console.error(`WARN: WEB_ORIGIN should include :${port} (got ${origin})`);
+  }
 }
 
 const password = get("POSTGRES_PASSWORD");

@@ -67,11 +67,11 @@ else
   info "WEB_ORIGIN=${WEB_ORIGIN}"
   origin_port="$(printf '%s' "$WEB_ORIGIN" | sed -n 's/.*:\([0-9][0-9]*\)\/?$/\1/p')"
   if [ -z "$origin_port" ]; then
-    warn "WEB_ORIGIN has no explicit port; production should include :${GATEWAY_PUBLIC_PORT}"
-  elif [ "$origin_port" != "$GATEWAY_PUBLIC_PORT" ]; then
-    fail "WEB_ORIGIN port (${origin_port}) does not match GATEWAY_PUBLIC_PORT (${GATEWAY_PUBLIC_PORT})"
+    ok "WEB_ORIGIN is the public HTTPS URL; gateway listens internally on :${GATEWAY_PUBLIC_PORT}"
+  elif [ "$origin_port" = "$GATEWAY_PUBLIC_PORT" ]; then
+    warn "WEB_ORIGIN includes internal port :${GATEWAY_PUBLIC_PORT}. Public URL should be https://meetcon.aiadoptionecosystem.com"
   else
-    ok "WEB_ORIGIN port matches GATEWAY_PUBLIC_PORT"
+    warn "WEB_ORIGIN port is ${origin_port}; internal gateway port is ${GATEWAY_PUBLIC_PORT}"
   fi
 fi
 

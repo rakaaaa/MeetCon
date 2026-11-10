@@ -114,9 +114,9 @@ services:
     restart: unless-stopped
     labels:
       meetcon.environment: production
-    # Host (VM) port → gateway HTTPS listener inside the container (nginx listen 30098).
+    # VM port 30098 → container port 30098 (nginx). Public site stays on https://meetcon.aiadoptionecosystem.com.
     ports:
-      - "0.0.0.0:${GATEWAY_PUBLIC_PORT:-30098}:30098"
+      - "0.0.0.0:30098:30098"
     volumes:
       - ./deploy/certs:/etc/nginx/certs:ro
     depends_on:

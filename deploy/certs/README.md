@@ -4,7 +4,7 @@
 
 The production **gateway** serves the website on **HTTPS port 30098** (`deploy/nginx.conf` uses `listen 30098 ssl`). Docker mounts `fullchain.pem` and `privkey.pem` into that container. The API stays on the internal network; browsers only talk HTTPS to the gateway.
 
-`WEB_ORIGIN` must match (`https://your-host:30098`) so session cookies and CORS work.
+`WEB_ORIGIN` must match the public site (`https://meetcon.aiadoptionecosystem.com`, no port) so session cookies and CORS work. The gateway still listens on port 30098.
 
 **Jenkins:** upload the same two files as Secret file credentials `meetcon-tls-fullchain` and `meetcon-tls-privkey` (see `deploy/jenkins/README.md`).
 

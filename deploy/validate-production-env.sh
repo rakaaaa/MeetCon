@@ -77,9 +77,13 @@ case "$(basename "$FILE")" in
     esac
     ;;
 esac
-if ! printf '%s' "$origin" | grep -qE ":${port}(/|$)"; then
-  echo "WARN: WEB_ORIGIN should include :${port} (got ${origin})" >&2
-fi
+case "$(basename "$FILE")" in
+  .env.simulation)
+    if ! printf '%s' "$origin" | grep -qE ":${port}(/|$)"; then
+      echo "WARN: WEB_ORIGIN should include :${port} (got ${origin})" >&2
+    fi
+    ;;
+esac
 
 pg_pass="$(get_var POSTGRES_PASSWORD)"
 if ! printf '%s' "$(get_var DATABASE_URL)" | grep -qF "$pg_pass"; then

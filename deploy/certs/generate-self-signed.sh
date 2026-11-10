@@ -25,4 +25,4 @@ openssl req -x509 -newkey rsa:2048 -nodes \
 chmod 600 privkey.pem
 chmod 644 fullchain.pem
 echo "Wrote fullchain.pem and privkey.pem for CN=${CN}"
-echo "Set WEB_ORIGIN=https://${CN}:30098 (or https://127.0.0.1:30098 for local tests)."
+echo "Certificate CN=${CN}. Public WEB_ORIGIN stays https://${CN} with no port. Docker listens on 30098."

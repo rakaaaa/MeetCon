@@ -146,7 +146,7 @@ database entirely in Docker.
 | Env file | `.env` | `.env.production` | `.env.simulation` |
 | What Docker runs | Postgres, Redis, Mailpit | Gateway, API, Postgres, Redis | Same services, isolated volumes |
 | App images | none (host `pnpm dev`) | `meetcon-api:<git-sha>`, `meetcon-gateway:<git-sha>` | `meetcon-api:simulation`, `meetcon-gateway:simulation` |
-| URL | `http://localhost:5173` | `https://<host>:30098` | `https://127.0.0.1:30998` |
+| URL | `http://localhost:5173` | `https://meetcon.aiadoptionecosystem.com` | `https://127.0.0.1:30998` |
 
 `run-production` refuses to start when `.env.production` still has the local
 password, a `localhost` database URL, or an `http://` origin. Compose is started
@@ -163,7 +163,7 @@ Quick start on the VM:
 
 ```sh
 cp .env.production.example .env.production
-# edit secrets and set WEB_ORIGIN=https://your-domain:30098
+# edit secrets. WEB_ORIGIN=https://meetcon.aiadoptionecosystem.com (port 30098 stays internal)
 # add deploy/certs/fullchain.pem and deploy/certs/privkey.pem
 chmod +x deploy/meetcon.sh
 ./deploy/meetcon.sh up
@@ -179,8 +179,9 @@ Files added for production:
 - [`deploy/nginx.conf`](deploy/nginx.conf) — SPA, SSE-friendly `/api` proxy, TLS
 - [`.env.production.example`](.env.production.example) — template environment
 
-Session cookies are `Secure` in production. Keep `WEB_ORIGIN` identical to the
-public URL including `:30098` so QR links, reset emails, and cookies stay consistent.
+Session cookies are `Secure` in production. `WEB_ORIGIN` is the public site
+`https://meetcon.aiadoptionecosystem.com`. Docker still listens on port `30098`
+behind that name.
 The Android release app uses the same origin in a full-screen WebView with no URL bar.
 
 Forgot-password mail is captured locally at <http://localhost:8025>. Expired

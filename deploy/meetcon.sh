@@ -121,7 +121,7 @@ cmd_up() {
   port="$(gateway_port)"
   echo ""
   echo "Stack up on 0.0.0.0:${port} → gateway :30098"
-  echo "WEB_ORIGIN must match (e.g. https://your-host:${port})"
+  echo "Public URL is WEB_ORIGIN (https://meetcon.aiadoptionecosystem.com). Port ${port} is internal."
   echo "Health: curl -k https://127.0.0.1:${port}/health"
 }
 
@@ -226,8 +226,8 @@ cmd_doctor() {
     echo "FAIL gateway $health" >&2
     exit 1
   fi
-  if [ -n "$origin" ] && ! echo "$origin" | grep -qE ":${port}(/|$)"; then
-    echo "WARN WEB_ORIGIN should include :${port} (e.g. https://your-host:${port})" >&2
+  if [ -n "$origin" ] && echo "$origin" | grep -qE ":${port}(/|$)"; then
+    echo "WARN WEB_ORIGIN includes internal port :${port}. Public URL should omit it." >&2
   fi
   if [ -x deploy/diagnose-gateway-port.sh ]; then
     deploy/diagnose-gateway-port.sh || true

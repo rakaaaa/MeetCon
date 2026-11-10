@@ -51,15 +51,15 @@ pipeline {
             fi
             bash deploy/jenkins-ci.sh
           '''
+          def credentialMiss = { err ->
+            def text = err.toString()
+            return text.contains('Could not find credentials') || text.contains('CredentialsNotFound') || text.contains('was expected')
+          }
           if (ciOnly) {
             withEnv(['MEETCON_CI_ONLY=1']) {
               sh deploy
             }
           } else {
-            def missing = { err ->
-              def text = err.toString()
-              return text.contains('Could not find credentials') || text.contains('CredentialsNotFound')
-            }
             try {
               withCredentials([file(credentialsId: credId, variable: 'MEETCON_ENV_FILE')]) {
                 try {
@@ -70,16 +70,20 @@ pipeline {
                     sh deploy
                   }
                 } catch (err) {
-                  if (missing(err)) {
-                    echo 'LinkedIn secret text credentials were not found. Sign-in stays off.'
-                    sh deploy
-                  } else {
+                  if (!credentialMiss(err)) {
                     throw err
+                  }
+                  echo 'Secret text credentials were not usable. Trying Secret file credentials with the same ids.'
+                  withCredentials([
+                    file(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_ID_FILE'),
+                    file(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_SECRET_FILE'),
+                  ]) {
+                    sh deploy
                   }
                 }
               }
             } catch (err) {
-              if (missing(err)) {
+              if (credentialMiss(err) && !err.toString().contains('meetcon-linkedin')) {
                 echo "No secret file '${credId}'. This build will create the production env and TLS certificate on the VM, then install MeetPlus."
                 try {
                   withCredentials([
@@ -89,11 +93,15 @@ pipeline {
                     sh deploy
                   }
                 } catch (err2) {
-                  if (missing(err2)) {
-                    echo 'LinkedIn secret text credentials were not found. Sign-in stays off.'
-                    sh deploy
-                  } else {
+                  if (!credentialMiss(err2)) {
                     throw err2
+                  }
+                  echo 'Secret text credentials were not usable. Trying Secret file credentials with the same ids.'
+                  withCredentials([
+                    file(credentialsId: 'meetcon-linkedin-client-id', variable: 'MEETCON_LINKEDIN_ID_FILE'),
+                    file(credentialsId: 'meetcon-linkedin-client-secret', variable: 'MEETCON_LINKEDIN_SECRET_FILE'),
+                  ]) {
+                    sh deploy
                   }
                 }
               } else {

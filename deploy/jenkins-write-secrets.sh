@@ -161,11 +161,21 @@ fill_linkedin() {
   fi
   if [ -z "$id" ]; then id="$(trim_env "${MEETCON_LINKEDIN_CLIENT_ID:-}")"; fi
   if [ -z "$secret" ]; then secret="$(trim_env "${MEETCON_LINKEDIN_CLIENT_SECRET:-}")"; fi
+  if [ -z "$id" ] && [ -n "${MEETCON_LINKEDIN_ID_FILE:-}" ] && [ -f "${MEETCON_LINKEDIN_ID_FILE}" ]; then
+    id="$(trim_env "$(tr -d '\r' < "${MEETCON_LINKEDIN_ID_FILE}")")"
+  fi
+  if [ -z "$secret" ] && [ -n "${MEETCON_LINKEDIN_SECRET_FILE:-}" ] && [ -f "${MEETCON_LINKEDIN_SECRET_FILE}" ]; then
+    secret="$(trim_env "$(tr -d '\r' < "${MEETCON_LINKEDIN_SECRET_FILE}")")"
+  fi
   origin="$(env_value WEB_ORIGIN)"
   origin="${origin%/}"
   redirect="${origin}/api/auth/linkedin/callback"
   if [ -z "$id" ] || [ -z "$secret" ]; then
     echo "WARN: LinkedIn sign-in is off. Jenkins did not pass both LinkedIn credentials into this build." >&2
+    echo "Create Secret text or Secret file credentials named meetcon-linkedin-client-id and meetcon-linkedin-client-secret in this job's folder or the global domain." >&2
+    if [ "${CI:-}" = "true" ]; then
+      exit 1
+    fi
     return 0
   fi
   set_env_line LINKEDIN_CLIENT_ID "$id"

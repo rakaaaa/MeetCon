@@ -83,6 +83,9 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 3001
       MEDIA_DIR: /data/media
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
+      LINKEDIN_REDIRECT_URI: ${LINKEDIN_REDIRECT_URI:-}
     volumes:
       - media_data:/data/media
     depends_on:

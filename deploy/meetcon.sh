@@ -144,6 +144,10 @@ cmd_deploy() {
     compose_logs
     exit 1
   fi
+  if ! "${COMPOSE_PROD[@]}" exec -T api node -e 'const id=(process.env.LINKEDIN_CLIENT_ID||"").trim(); const secret=(process.env.LINKEDIN_CLIENT_SECRET||"").trim(); console.log("API LinkedIn client id characters: "+id.length); console.log("API LinkedIn client secret characters: "+secret.length); if(!id||!secret) process.exit(1)'; then
+    echo "The API container started without LinkedIn credentials." >&2
+    exit 1
+  fi
   tag_production_images
   local health="http://127.0.0.1:$(gateway_port)/health"
   echo "Health: $health"
